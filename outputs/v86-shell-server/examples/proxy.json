@@ -1,0 +1,21 @@
+{
+  "allow": [
+    {
+      "origin": "https://api.openai.com",
+      "methods": ["GET", "POST"],
+      "credential": {
+        "header": "authorization",
+        "placeholder": "Bearer c911750a-76e3-481b-81c0-cddc95630d9d",
+        "secretEnv": "OPENAI_API_KEY",
+        "prefix": "Bearer "
+      }
+    },
+    {
+      "origin": "https://dl-cdn.alpinelinux.org",
+      "methods": ["GET", "HEAD"]
+    }
+  ],
+  "guestEnv": {
+    "OPENAI_API_KEY": "c911750a-76e3-481b-81c0-cddc95630d9d"
+  }
+}

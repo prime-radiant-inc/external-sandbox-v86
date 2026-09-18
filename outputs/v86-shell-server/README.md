@@ -10,14 +10,15 @@ stdout/stderr and incremental stdin. The Python client and Claude Code wrapper
 use the streaming endpoint.
 
 The bundled guest is 32-bit Alpine Linux with Bash, Python 3, Git, and BusyBox.
-It has no network access. Commands run as guest UID/GID 1000. Node runs on the
+Networking is off by default. Optional managed HTTP(S) egress applies host and
+IP rules and substitutes placeholder tokens with host-side API keys.
+Commands run as guest UID/GID 1000. Node runs on the
 host; Node/npm are not installed in this guest image.
 
 ## Run
 
 Requirements: Node.js 22 or later and npm. A prebuilt guest image is included.
-The current directory already has installed dependencies and compiled output.
-On another machine, install and build first:
+Install and build first:
 
 ```sh
 npm ci
@@ -51,6 +52,27 @@ Guest system paths cannot be overwritten, and the total alias configuration
 must fit the kernel command line; startup reports an error if it cannot.
 
 Use `node dist/cli.js --help` for `--image`, `--memory`, and `--verbose` options.
+
+## Managed HTTP(S) networking
+
+The optional proxy runs inside this Node process; no separate proxy service,
+Docker runtime, OpenSSL executable, or host firewall setup is required.
+
+```sh
+# Supply OPENAI_API_KEY to the server from your host-side secret manager.
+node dist/cli.js --proxy-config examples/proxy.json --mount project=/path/to/project
+```
+
+Guest programs receive a placeholder API key, standard proxy settings, and a
+public CA certificate. The host proxy checks each destination and replaces the
+exact placeholder header with the real host credential. Direct guest networking
+is blocked outside the guest, even when a program ignores proxy settings.
+
+See [configuration, examples, and security boundaries](docs/proxy.md). This mode
+supports outbound HTTP(S), including streaming responses, with exact origin
+rules, optional methods/paths, and optional CIDR allowlists. It does not enable
+arbitrary TCP/UDP or grant package-install privileges. Omitting `--proxy-config`
+retains the offline behavior.
 
 ## JSON API
 
@@ -186,8 +208,8 @@ API failures are `125`. SIGINT/SIGTERM/SIGHUP cancel the remote command and clos
 the WebSocket connection.
 
 The prefix also applies to hooks, status-line commands, and stdio MCP server
-startup. Bidirectional pipes now support request/response programs, but the guest
-still has no network and lacks Node/npm. Long-lived programs remain subject to
+startup. Bidirectional pipes support request/response programs. The guest lacks
+Node/npm, and networking requires explicit proxy configuration. Long-lived programs remain subject to
 the five-minute timeout and 16 MiB output ceiling. No PTY is allocated, so programs
 requiring a terminal are unsupported. Claude's native Read/Edit tools still
 operate on the host: a shell prefix does not put all of Claude Code inside the VM.
@@ -230,7 +252,10 @@ Validated on Node 24 / macOS arm64. The integration suite boots real v86 and
 checks shell behavior, streams and nonzero exits, two live host mounts, host
 changes after boot, binary writes, file operations, symlink boundaries,
 stdin/env, concurrent requests, timeout/output caps, disconnect cancellation,
-and the shell prefix with Claude-style prologue/cwd bookkeeping. Streaming tests
+and the shell prefix with Claude-style prologue/cwd bookkeeping. Managed proxy
+tests cover local HTTP/TLS upstreams, secret substitution, host/IP rejection,
+streaming, direct-connection bypass attempts, and the uv client through real v86.
+Streaming tests
 also require output before stdin is sent, successive inputs before EOF, binary
 data across both streams, input larger than 32 KiB, and Python client completion
 while its local stdin stays open. Python tests also cover terminal input and
