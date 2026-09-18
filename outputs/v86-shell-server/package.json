@@ -1,0 +1,20 @@
+{
+  "name": "v86-shell-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local HTTP JSON shell API backed by a v86 Linux VM with live host directory mounts",
+  "engines": { "node": ">=22" },
+  "bin": { "v86-shell-server": "dist/cli.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "dev": "node --import tsx src/cli.ts",
+    "check": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:integration": "node --import tsx --test test/integration/*.test.ts",
+    "test:python": "uv run --with websockets==17.0.1 python -m unittest discover -s test/python -v"
+  },
+  "dependencies": { "v86": "0.5.458", "ws": "8.21.3" },
+  "devDependencies": { "@types/node": "24.10.1", "@types/ws": "8.18.1", "tsx": "4.21.0", "typescript": "5.9.3" }
+}
