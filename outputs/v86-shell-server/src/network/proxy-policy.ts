@@ -37,6 +37,16 @@ export interface ProxyPolicy {
   resolve(url: URL, rule: ProxyRule): Promise<ProxyAddress>;
   /** Host-only, non-enumerable accessor for best-effort literal response redaction. */
   secretValues(): readonly string[];
+  /** Optional on legacy policy implementations; present on compiled policies. */
+  configuration?(): ProxyConfig;
+  replacement?(config: unknown): CompiledProxyPolicy;
+}
+
+export interface CompiledProxyPolicy extends ProxyPolicy {
+  /** A detached, normalized, secret-redacted management view. */
+  configuration(): ProxyConfig;
+  /** Compile against the original host secret snapshot and resolver options. */
+  replacement(config: unknown): CompiledProxyPolicy;
 }
 
 export class ProxyPolicyError extends Error {
@@ -167,8 +177,29 @@ interface CompiledRule {
   credentialValue?: string;
 }
 
+/** Redact values and keys without mutating a caller's object. */
+export function redactProxyValue<T>(value: T, secrets: readonly string[]): T {
+  const ordered = [...new Set(secrets)].filter(Boolean).sort((a, b) => b.length - a.length);
+  const replacement = ordered.some(secret => '[REDACTED]'.includes(secret)) ? '' : '[REDACTED]';
+  const redact = (input: unknown): unknown => {
+    if (typeof input === 'string') {
+      for (const secret of ordered) input = (input as string).split(secret).join(replacement);
+      return input;
+    }
+    if (Array.isArray(input)) return input.map(redact);
+    if (input && typeof input === 'object') return Object.fromEntries(Object.entries(input)
+      .map(([key, item]) => [redact(key), redact(item)]));
+    return input;
+  };
+  return redact(value) as T;
+}
+
 export function compileProxyPolicy(config: unknown, secrets: Record<string, string | undefined> = process.env,
-  options: ProxyPolicyOptions = {}): ProxyPolicy {
+  options: ProxyPolicyOptions = {}): CompiledProxyPolicy {
+  // Do not retain a mutable process.env or caller map: later policies may add
+  // credentials, but may only use secrets available when this proxy started.
+  const hostSecrets = Object.freeze({ ...secrets });
+  const resolverOptions = { ...options };
   const root = object(config, ['allow', 'guestEnv']);
   if (!Array.isArray(root.allow) || root.allow.length > 64) return invalid();
   const compiled = new Map<string, CompiledRule>();
@@ -198,7 +229,7 @@ export function compileProxyPolicy(config: unknown, secrets: Record<string, stri
       const prefix = inputCredential.prefix === undefined ? '' : text(inputCredential.prefix, false);
       if (!rule.origin.startsWith('https://') || !HEADER_NAME.test(header) || FORBIDDEN_CREDENTIAL_HEADERS.has(header)
         || !HEADER_VALUE.test(placeholder) || !HEADER_VALUE.test(prefix) || !ENV_NAME.test(secretEnv)) invalid();
-      const secret = secrets[secretEnv];
+      const secret = hostSecrets[secretEnv];
       if (typeof secret !== 'string' || !secret.trim() || Buffer.byteLength(secret) > MAX_VALUE_BYTES || !HEADER_VALUE.test(secret)) invalid();
       credentialValue = prefix + secret;
       secretValues.add(secret);
@@ -264,8 +295,15 @@ export function compileProxyPolicy(config: unknown, secrets: Record<string, stri
       }
       return deny();
     },
-  } as ProxyPolicy;
-  const values = Object.freeze([...secretValues]);
+  } as CompiledProxyPolicy;
+  const normalized: ProxyConfig = JSON.parse(JSON.stringify({
+    allow: [...compiled.values()].map(entry => entry.rule),
+    ...(root.guestEnv !== undefined ? { guestEnv } : {}),
+  }));
+  const values = Object.freeze([...secretValues].sort((a, b) => b.length - a.length));
   Object.defineProperty(policy, 'secretValues', { value: () => values });
+  Object.defineProperty(policy, 'configuration', { value: () => redactProxyValue(normalized, values) });
+  Object.defineProperty(policy, 'replacement', { value: (replacement: unknown) =>
+    compileProxyPolicy(replacement, hostSecrets, resolverOptions) });
   return Object.freeze(policy);
 }

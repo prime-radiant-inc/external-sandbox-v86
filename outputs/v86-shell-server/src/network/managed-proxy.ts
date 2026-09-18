@@ -4,7 +4,24 @@ import net, { type Socket } from 'node:net';
 import tls from 'node:tls';
 import { Transform, pipeline } from 'node:stream';
 import { createCertificateAuthority } from './certificates.js';
-import type { ProxyPolicy } from './proxy-policy.js';
+import { redactProxyValue, type ProxyConfig, type ProxyPolicy } from './proxy-policy.js';
+import { isDeepStrictEqual } from 'node:util';
+
+export interface ProxyEvent {
+    timestamp: string;
+    method: string;
+    origin: string;
+    path: string;
+    status: number;
+    decision: 'allowed' | 'denied' | 'error';
+    reason: string;
+    durationMs: number;
+    credentialInjected: boolean;
+}
+export interface ProxyManagement {
+    snapshot(): { enabled: true; policy: ProxyConfig; events: ProxyEvent[] };
+    updatePolicy(config: unknown): void;
+}
 const HOP_HEADERS = ['connection', 'keep-alive', 'proxy-connection', 'proxy-authorization', 'proxy-authenticate', 'te', 'trailer', 'transfer-encoding', 'upgrade'];
 const MAX_CONNECTIONS = 64;
 const MAX_REQUEST_BYTES = 16 * 1024 * 1024;
@@ -123,7 +140,32 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
     const tunnelOrigins = new WeakMap<Socket, string>();
     let closing = false;
     let activeRequests = 0;
-    const secrets = policy.secretValues();
+    let generation = 0;
+    const events: ProxyEvent[] = [];
+    const knownSecrets = new Set(policy.secretValues());
+    const pendingEvents = new Set<() => void>();
+    const record = (requestPolicy: ProxyPolicy, start: number, method: string, url: URL | undefined,
+        status: number, decision: ProxyEvent['decision'], reason: string, injected = false) => {
+        const secrets = [...new Set([...knownSecrets, ...requestPolicy.secretValues()])];
+        const event: ProxyEvent = {
+            timestamp: new Date().toISOString(),
+            // Redact before shortening: a long secret must not leak its prefix.
+            method: redactProxyValue(method, secrets).slice(0, 32),
+            origin: redactProxyValue(url?.origin ?? '', secrets).slice(0, 512),
+            path: redactProxyValue(url?.pathname ?? '', secrets).slice(0, 2048),
+            status, decision, reason,
+            durationMs: Math.max(0, Math.round(performance.now() - start)),
+            credentialInjected: injected,
+        };
+        events.push(redactProxyValue(event, secrets));
+        if (events.length > 500) events.shift();
+    };
+    const revokeConnections = () => {
+        generation++;
+        for (const finish of pendingEvents) finish();
+        for (const request of outgoing) request.destroy();
+        for (const socket of sockets) socket.destroy();
+    };
     const track = (socket: Socket) => {
         sockets.add(socket);
         socket.once('close', () => sockets.delete(socket));
@@ -131,47 +173,81 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
         socket.setTimeout(120_000, () => socket.destroy());
     };
     const handle = async (request: IncomingMessage, response: ServerResponse) => {
-        if (closing || activeRequests >= MAX_CONNECTIONS) return deny(response, 503);
-        activeRequests++;
-        response.once('close', () => { activeRequests--; });
+        const requestPolicy = policy;
+        const requestGeneration = generation;
+        const secrets = [...knownSecrets];
+        const start = performance.now();
+        const method = request.method ?? 'GET';
+        let url: URL | undefined;
+        let status = 502;
+        let decision: ProxyEvent['decision'] = 'error';
+        let reason = 'upstream_or_transport_error';
+        let injected = false;
+        let recorded = false;
+        let counted = false;
         let upstream: http.ClientRequest | undefined;
-        const deadline = setTimeout(() => {
+        let deadline: NodeJS.Timeout | undefined;
+        const finish = () => {
+            if (recorded) return;
+            recorded = true;
+            pendingEvents.delete(revoked);
+            record(requestPolicy, start, method, url, status, decision, reason, injected);
+        };
+        const revoked = () => { status = 503; decision = 'error'; reason = 'proxy_closed_or_policy_updated'; finish(); };
+        pendingEvents.add(revoked);
+        response.once('finish', finish);
+        response.once('close', () => {
+            finish();
+            if (counted) activeRequests--;
+            clearTimeout(deadline);
+            upstream?.destroy();
+        });
+        const fail = (code = 403, failureReason = code === 403 ? 'policy_denied' : 'upstream_or_transport_error') => {
+            status = code;
+            decision = code === 403 ? 'denied' : 'error';
+            reason = failureReason;
+            deny(response, code);
+        };
+        if (closing || activeRequests >= MAX_CONNECTIONS) return fail(503, 'connection_limit');
+        activeRequests++;
+        counted = true;
+        deadline = setTimeout(() => {
+            status = 504; decision = 'error'; reason = 'timeout';
             upstream?.destroy();
             response.destroy();
         }, 300_000);
         deadline.unref();
-        response.once('close', () => clearTimeout(deadline));
         try {
             if (closing || repeatedSensitiveHeaders(request))
-                return deny(response);
+                return fail();
             if (Number(request.headers['content-length'] ?? 0) > MAX_REQUEST_BYTES)
-                return deny(response, 413);
+                return fail(413, 'request_too_large');
             const tunnelOrigin = tunnelOrigins.get(request.socket);
-            let url: URL;
             if (tunnelOrigin) {
                 if (authorityOrigin(String(request.headers.host ?? ''), 'https:') !== tunnelOrigin)
-                    return deny(response);
+                    return fail();
                 url = request.url?.startsWith('/') ? new URL(request.url, tunnelOrigin) : new URL(request.url ?? '');
                 if (url.origin !== tunnelOrigin || url.protocol !== 'https:')
-                    return deny(response);
+                    return fail();
             }
             else {
                 url = new URL(request.url ?? '');
                 if (url.protocol !== 'http:' || authorityOrigin(String(request.headers.host ?? ''), 'http:') !== url.origin)
-                    return deny(response);
+                    return fail();
             }
             if (url.username || url.password || url.hash)
-                return deny(response);
-            const authorized = policy.authorize(url, request.method ?? 'GET', cleanHeaders(request.headers));
+                return fail();
+            const authorized = requestPolicy.authorize(url, method, cleanHeaders(request.headers));
             let resolveTimer: NodeJS.Timeout | undefined;
             const timeout = new Promise<never>((_resolve, reject) => {
                 resolveTimer = setTimeout(() => reject(new Error('Resolution timed out')), 10_000);
                 resolveTimer.unref();
             });
-            const address = await Promise.race([policy.resolve(url, authorized.rule), timeout])
+            const address = await Promise.race([requestPolicy.resolve(url, authorized.rule), timeout])
                 .finally(() => clearTimeout(resolveTimer));
-            if (request.destroyed || response.destroyed || closing)
+            if (request.destroyed || response.destroyed || closing || requestGeneration !== generation)
                 return;
+            injected = Boolean(authorized.rule.credential);
             const headers = cleanHeaders(authorized.headers as IncomingHttpHeaders);
             headers.host = url.host;
             headers['accept-encoding'] = 'identity';
@@ -200,13 +276,13 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
                 }
                 if (upstreamResponse.statusCode === 101 || (upstreamResponse.headers['content-encoding'] && upstreamResponse.headers['content-encoding'] !== 'identity')) {
                     upstreamResponse.destroy();
-                    deny(response, 502);
+                    fail(502, 'upstream_response_not_supported');
                     return;
                 }
                 const outgoingHeaders = cleanHeaders(upstreamResponse.headers);
                 if (Object.keys(outgoingHeaders).some(name => secrets.some(secret => name.includes(secret)))) {
                     upstreamResponse.destroy();
-                    deny(response, 502);
+                    fail(502, 'upstream_response_not_supported');
                     return;
                 }
                 for (const name of ['content-length', 'content-md5', 'digest', 'etag'])
@@ -214,21 +290,25 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
                 for (const [name, value] of Object.entries(outgoingHeaders))
                     if (value !== undefined)
                         outgoingHeaders[name] = Array.isArray(value) ? value.map(item => redactText(item, secrets)) : redactText(String(value), secrets);
-                response.writeHead(upstreamResponse.statusCode ?? 502, outgoingHeaders);
+                status = upstreamResponse.statusCode ?? 502;
+                // The finish listener runs before pipeline's callback, so only
+                // a complete response is classified as allowed.
+                response.prependOnceListener('finish', () => { decision = 'allowed'; reason = 'completed'; });
+                response.writeHead(status, outgoingHeaders);
                 pipeline(upstreamResponse, new ByteLimit(MAX_RESPONSE_BYTES), new SecretRedactor(secrets), response, () => { });
             });
             outgoing.add(upstream);
             upstream.once('close', () => outgoing.delete(upstream!));
             upstream.setTimeout(120000, () => upstream!.destroy());
-            upstream.on('error', () => deny(response, 502));
-            upstream.on('upgrade', (_res, socket) => { socket.destroy(); deny(response, 502); });
+            upstream.on('error', () => fail(502));
+            upstream.on('upgrade', (_res, socket) => { socket.destroy(); fail(502, 'upstream_upgrade_not_supported'); });
             request.once('aborted', () => upstream!.destroy());
-            response.once('close', () => upstream!.destroy());
             pipeline(request, new ByteLimit(MAX_REQUEST_BYTES), upstream, () => { });
         }
         catch {
             upstream?.destroy();
-            deny(response);
+            if (requestGeneration !== generation) return;
+            fail();
         }
     };
     const server = http.createServer({ maxHeaderSize: 32768 }, (req, res) => { void handle(req, res); });
@@ -237,8 +317,16 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
         instance.headersTimeout = 10000;
         instance.requestTimeout = 120000;
         instance.keepAliveTimeout = 1000;
-        instance.on('upgrade', (_request, socket) => rejectSocket(socket as Socket));
-        instance.on('clientError', (_error, socket) => rejectSocket(socket as Socket));
+        instance.on('upgrade', (request, socket) => {
+            let url: URL | undefined;
+            try { url = new URL(request.url ?? '', tunnelOrigins.get(socket as Socket)); } catch { /* no raw URL in events */ }
+            record(policy, performance.now(), request.method ?? '', url, 403, 'denied', 'policy_denied');
+            rejectSocket(socket as Socket);
+        });
+        instance.on('clientError', (_error, socket) => {
+            record(policy, performance.now(), '', undefined, 400, 'error', 'invalid_http');
+            rejectSocket(socket as Socket);
+        });
     }
     server.on('connection', socket => {
         if (closing || connections.size >= MAX_CONNECTIONS) {
@@ -250,13 +338,21 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
         track(socket);
     });
     server.on('connect', (request, socket, head) => {
+        const requestPolicy = policy;
+        const start = performance.now();
+        let url: URL | undefined;
+        const reject = () => {
+            record(requestPolicy, start, 'CONNECT', url, 403, 'denied', 'policy_denied');
+            rejectSocket(socket as Socket);
+        };
         try {
             const raw = socket as Socket;
             if (closing || repeatedSensitiveHeaders(request))
-                return rejectSocket(raw);
+                return reject();
             const origin = authorityOrigin(request.url ?? '', 'https:');
-            if (!policy.origins.includes(origin) || (request.headers.host && authorityOrigin(request.headers.host, 'https:') !== origin))
-                return rejectSocket(raw);
+            url = new URL(origin);
+            if (!requestPolicy.origins.includes(origin) || (request.headers.host && authorityOrigin(request.headers.host, 'https:') !== origin))
+                return reject();
             const hostname = new URL(origin).hostname.replace(/^\[|\]$/g, '');
             const leaf = ca.issue(hostname);
             const context = tls.createSecureContext({ key: leaf.privateKey, cert: leaf.certificate });
@@ -278,7 +374,7 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
             secure.once('error', () => raw.destroy());
         }
         catch {
-            rejectSocket(socket as Socket);
+            reject();
         }
     });
     await new Promise<void>((resolve, reject) => {
@@ -291,11 +387,30 @@ export async function startManagedProxy(policy: ProxyPolicy, options: {
     return {
         port: (server.address() as net.AddressInfo).port,
         caCertificate: ca.certificate,
+        snapshot(): ReturnType<ProxyManagement['snapshot']> {
+            return {
+                enabled: true,
+                policy: redactProxyValue(policy.configuration?.() ?? { allow: policy.origins.map(origin => ({ origin })), guestEnv: { ...policy.guestEnv } }, [...knownSecrets]),
+                // A newly configured secret may already appear in past paths.
+                events: redactProxyValue(events, [...knownSecrets]),
+            };
+        },
+        updatePolicy(config: unknown) {
+            if (closing) throw new Error('Proxy is closed');
+            if (!policy.replacement) throw new Error('Live updates require a compiled proxy policy');
+            const replacement = policy.replacement(config);
+            if (!isDeepStrictEqual(replacement.guestEnv, policy.guestEnv))
+                throw new Error('Changing guestEnv requires restarting the server');
+            // All validation completes before either policy or sockets change.
+            policy = replacement;
+            for (const secret of policy.secretValues()) knownSecrets.add(secret);
+            ca.clearCache();
+            revokeConnections();
+        },
         async close() {
             if (closing) return;
             closing = true;
-            for (const request of outgoing) request.destroy();
-            for (const socket of sockets) socket.destroy();
+            revokeConnections();
             await new Promise<void>(resolve => server.close(() => resolve()));
             inner.close();
         },

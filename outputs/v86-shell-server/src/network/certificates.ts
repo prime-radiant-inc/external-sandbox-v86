@@ -22,6 +22,7 @@ export function createCertificateAuthority() {
     }>();
     return {
         certificate: forge.pki.certificateToPem(ca),
+        clearCache() { cache.clear(); },
         issue(hostname: string) {
             const cached = cache.get(hostname);
             if (cached)
