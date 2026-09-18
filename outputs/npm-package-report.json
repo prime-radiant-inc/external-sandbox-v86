@@ -1,0 +1,72 @@
+{
+  "name": "v86-shell-server",
+  "version": "0.1.0",
+  "published": false,
+  "archive": "v86-shell-server-0.1.0.tgz",
+  "archiveBytes": 33548089,
+  "unpackedPackageBytes": 34243178,
+  "packedFileCount": 106,
+  "sha256": "a174728a082284c105ecee612d15a5939afd5133ea12cc499bb31fab5b1f3990",
+  "integrity": "sha512-tYoYpAGmF7LNKoIFUhHNDN6ErBXZiOMMbHPt7WPPlVfbOlzTM1VSP9DsVil5v4XdzJtHE4xrbpQ+1Bn4Sgv9jA==",
+  "dependencyArchives": [
+    {
+      "name": "v86",
+      "version": "0.5.458+gd96be77",
+      "bytes": 3951297,
+      "unpackedBytes": 18495790
+    },
+    {
+      "name": "node-forge",
+      "version": "1.4.0",
+      "bytes": 435334,
+      "unpackedBytes": 1647637
+    },
+    {
+      "name": "ws",
+      "version": "8.21.3",
+      "bytes": 35016,
+      "unpackedBytes": 150929
+    }
+  ],
+  "totalNpmArchiveBytes": 37969736,
+  "installedPackages": {
+    "node-forge": 1647637,
+    "v86": 18495790,
+    "v86-shell-server": 34243178,
+    "ws": 150929
+  },
+  "installedNodeModulesBytes": 54539489,
+  "verification": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v24.14.1",
+    "checks": [
+      {
+        "mode": "installed",
+        "bootMilliseconds": 4720,
+        "jsonApi": true,
+        "stdout": true,
+        "stderr": true,
+        "nonzeroExit": true,
+        "outputBeforeInput": true,
+        "laterStdin": true,
+        "mountedReadWrite": true
+      },
+      {
+        "mode": "npx",
+        "bootMilliseconds": 5395,
+        "jsonApi": true,
+        "stdout": true,
+        "stderr": true,
+        "nonzeroExit": true,
+        "outputBeforeInput": true,
+        "laterStdin": true,
+        "mountedReadWrite": true
+      },
+      {
+        "mode": "npx explicit package help",
+        "help": true
+      }
+    ]
+  }
+}

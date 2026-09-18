@@ -1,0 +1,46 @@
+$ ["/Users/simon/Documents/Codex/2026-09-17/find/work/npm-package-smoke/install-final/node_modules/.bin/v86-shell-server","--port","0","--memory","256","--mount","project=/Users/simon/Documents/Codex/2026-09-17/find/work/npm-package-smoke/npx-cwd"]
+POST /exec {"command":"uname -m; cat from-host.txt; printf \"API stderr\\n\" >&2; exit 23","cwd":"/mnt/project"}
+API result: {"exitCode":23,"signal":null,"timedOut":false,"outputLimitExceeded":false,"durationMs":58,"stdout":"i686\nlive mount content\n","stderr":"API stderr\n"}
+$ ["/Users/simon/Documents/Codex/2026-09-17/find/work/npm-package-smoke/install-final/node_modules/.bin/v86-exec","printf 'ready\\n'; printf 'client stderr\\n' >&2; IFS= read -r line; printf 'received:%s\\n' \"$line\"; printf 'written through installed\\n' > installed-written.txt; exit 7"]
+Client streamed stdout and stderr before stdin; now sending: after-ready
+Client result: {"code":7,"signal":null,"stdout":"ready\nreceived:after-ready\n","stderr":"client stderr\n"}
+$ ["npx","--yes","--cache","/Users/simon/Documents/Codex/2026-09-17/find/work/npm-package-smoke/cache-final","--package","/Users/simon/Documents/Codex/2026-09-17/find/outputs/v86-shell-server-0.1.0.tgz","v86-shell-server","--port","0","--memory","256","--mount","project=/Users/simon/Documents/Codex/2026-09-17/find/work/npm-package-smoke/npx-cwd"]
+POST /exec {"command":"uname -m; cat from-host.txt; printf \"API stderr\\n\" >&2; exit 23","cwd":"/mnt/project"}
+API result: {"exitCode":23,"signal":null,"timedOut":false,"outputLimitExceeded":false,"durationMs":52,"stdout":"i686\nlive mount content\n","stderr":"API stderr\n"}
+$ ["npx","--yes","--cache","/Users/simon/Documents/Codex/2026-09-17/find/work/npm-package-smoke/cache-final","--package","/Users/simon/Documents/Codex/2026-09-17/find/outputs/v86-shell-server-0.1.0.tgz","v86-exec","printf 'ready\\n'; printf 'client stderr\\n' >&2; IFS= read -r line; printf 'received:%s\\n' \"$line\"; printf 'written through npx\\n' > npx-written.txt; exit 7"]
+Client streamed stdout and stderr before stdin; now sending: after-ready
+Client result: {"code":7,"signal":null,"stdout":"ready\nreceived:after-ready\n","stderr":"client stderr\n"}
+$ ["npx","--yes","--cache","/Users/simon/Documents/Codex/2026-09-17/find/work/npm-package-smoke/cache-final","--package","/Users/simon/Documents/Codex/2026-09-17/find/outputs/v86-shell-server-0.1.0.tgz","v86-shell-server","--help"]
+PASS {
+  "platform": "darwin",
+  "architecture": "arm64",
+  "node": "v24.14.1",
+  "checks": [
+    {
+      "mode": "installed",
+      "bootMilliseconds": 4720,
+      "jsonApi": true,
+      "stdout": true,
+      "stderr": true,
+      "nonzeroExit": true,
+      "outputBeforeInput": true,
+      "laterStdin": true,
+      "mountedReadWrite": true
+    },
+    {
+      "mode": "npx",
+      "bootMilliseconds": 5395,
+      "jsonApi": true,
+      "stdout": true,
+      "stderr": true,
+      "nonzeroExit": true,
+      "outputBeforeInput": true,
+      "laterStdin": true,
+      "mountedReadWrite": true
+    },
+    {
+      "mode": "npx explicit package help",
+      "help": true
+    }
+  ]
+}

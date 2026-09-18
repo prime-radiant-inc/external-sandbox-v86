@@ -9,7 +9,7 @@ import { startManagedProxy } from './network/managed-proxy.js';
 
 const HELP = `v86-shell-server — a local JSON shell API inside a Linux VM
 
-Usage: node dist/cli.js [options] [directory ...]
+Usage: v86-shell-server [options] [directory ...]
 
   --mount [NAME=]PATH   Mount a host directory at /mnt/NAME (repeatable).
                        NAME defaults to the directory basename.

@@ -17,6 +17,11 @@ host; Node/npm are not installed in this guest image.
 
 ## Run
 
+An unpublished npm tarball can also be run directly with `npx`, including the
+bundled Linux image; no source build is needed after installation. See
+[npm installation and npx](docs/npm.md) for local archive, global install, and
+streaming client instructions.
+
 Requirements: Node.js 22 or later and npm. A prebuilt guest image is included.
 Install and build first:
 
