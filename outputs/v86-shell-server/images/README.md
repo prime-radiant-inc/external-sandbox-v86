@@ -11,6 +11,20 @@ The server always supplies this filesystem, including when no directories
 were selected. Failure to load a module or mount the filesystem aborts boot
 and writes a diagnostic to the serial console.
 
+Networking remains disabled unless the server passes `v86_network=proxy`.
+In that mode init loads `failover`, `net_failover`, and `virtio_net`, configures
+`eth0` as `192.168.86.100/24`, and uses `192.168.86.1` as its virtual gateway.
+The host Wisp relay can dial only the managed HTTP proxy; it never dials a
+guest-requested destination directly. Guest DNS is left unconfigured, and
+v86's internal DNS mode is explicitly static to prevent its default DoH path
+from making requests outside the managed proxy.
+
+The server installs the proxy's public CA certificate at
+`/home/agent/.v86-proxy-ca.pem` after boot and supplies proxy and CA environment
+variables to commands. No CA private key or upstream API credential enters
+the image. The guest user can replace its own public trust file; doing so
+does not change the host policy or grant additional egress.
+
 The optional `v86_mounts` kernel argument contains a base64url-encoded JSON
 array of `{ "name": "mount-name", "paths": ["/absolute/guest/path"] }`
 entries. Init bind-mounts these explicit aliases before starting the agent.
@@ -44,7 +58,8 @@ Requirements: Node.js 22 or later, Docker with `linux/386` support, and network
 access to download the pinned inputs. Inputs are verified against
 `sources.lock.json` and cached under `images/cache`. Docker builds with
 `--network none` after downloads complete. The build compiles the C agent,
-installs the pinned Alpine packages, retains the four virtio-9p modules, and
+installs the pinned Alpine packages, retains the four virtio-9p modules and
+three virtio-net modules, and
 writes a new kernel, initramfs, BIOS files, package inventory, and manifest.
 
 The kernel module files in `modules/` were extracted from the same pinned

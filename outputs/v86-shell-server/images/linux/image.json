@@ -21,8 +21,8 @@
     },
     "initrd": {
       "path": "initrd.img",
-      "sha256": "42659b1dc761285f39329c72d7474ebbb1c84f055c24dd37d22710b3bd827d3e",
-      "size": 26138507
+      "sha256": "1c841714aab6811aebb70aac5ce98de44a186716a309707c0031df7ea3494704",
+      "size": 25637081
     }
   },
   "build": {
@@ -31,13 +31,16 @@
     "agentSource": "guest/agent/agent.c",
     "agentSourceSha256": "bacee19f548cbbc7b7e52144a81c70eabea0a8691a2a778c6608b2f1bb930739",
     "sourcesLockSha256": "964174a9dcba2d7e9e996f2d7c4592e526af12d2d28dac021ab081f3894d4299",
-    "initSourceSha256": "688c9c30513d0ab388bfb8a4411f85d6d4817e7b521ab2349a9c59f9bacea30b",
+    "initSourceSha256": "84b235bd558bfe0f63dda3888d9e80dc8ceaf5c5adbc77eea424c63e4377acf5",
     "hostFilesystem": "virtio-9p/9p2000.L at /mnt",
     "modules": {
       "netfs.ko.gz": "31939bee13fd2d9e8c839877c8746b34071bfa9f9c87409e34040ee42405f2b2",
       "9pnet.ko.gz": "dbd617f458b94b091dfa187d05a73d2c8d14f4bec0ea2820449b53ecc9384578",
       "9pnet_virtio.ko.gz": "137df8b57d686b9712e5edcd13d58fb8e87ff815bdabf78340d0f5241a9dca6a",
-      "9p.ko.gz": "5e89d1afe82f4165700fd586973d40cd2c5f24dafacf154de70e0fa3e7d8faee"
+      "9p.ko.gz": "5e89d1afe82f4165700fd586973d40cd2c5f24dafacf154de70e0fa3e7d8faee",
+      "failover.ko.gz": "d1688975bb28168474cf18675fca990205e60b767eb785d8a5805444ccda0dcd",
+      "net_failover.ko.gz": "c97ee76fb87306b46add3a6eb76cdb9b7f01b70ec824b8e5761dddd5f66cfd92",
+      "virtio_net.ko.gz": "435fa8e633cda5d8b81e88fab6127b959e551512d5a073eb2ab0668680d2a23e"
     }
   }
 }

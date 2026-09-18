@@ -26,9 +26,9 @@ chown 1000:1000 /rootfs/workspace /rootfs/home/agent
 # Remove the compiler toolchain from the runtime filesystem.
 apk --root /rootfs --no-network --no-scripts del gcc musl-dev cpio binutils gmp isl26 mpc1 mpfr4 libstdc++ libgomp libatomic jansson
 apk --root /rootfs info -v | LC_ALL=C sort > /out/packages.txt
-# Keep just the virtio-9p dependency closure. These are loaded explicitly by init.
+# Keep the virtio-9p and optional virtio-net dependency closures.
 mkdir -p /rootfs/usr/local/lib/v86-modules
-for module in fs/netfs/netfs net/9p/9pnet net/9p/9pnet_virtio fs/9p/9p; do
+for module in fs/netfs/netfs net/9p/9pnet net/9p/9pnet_virtio fs/9p/9p net/core/failover drivers/net/net_failover drivers/net/virtio_net; do
     gzip -dc "/rootfs/lib/modules/6.12.109-0-virt/kernel/$module.ko.gz" > "/rootfs/usr/local/lib/v86-modules/${module##*/}.ko"
 done
 rm -rf /rootfs/boot /rootfs/lib/modules /rootfs/usr/lib/gcc /rootfs/usr/include /rootfs/usr/share/man /rootfs/usr/share/doc /rootfs/var/cache/apk

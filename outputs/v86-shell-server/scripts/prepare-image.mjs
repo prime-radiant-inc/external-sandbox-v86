@@ -41,7 +41,7 @@ for (const name of ['usr/local/lib', moduleDir]) {
   if (!existingNames.has(name)) replacements.set(name, { mode: 0o40755, data: Buffer.alloc(0) });
 }
 const moduleHashes = {};
-for (const module of ['netfs', '9pnet', '9pnet_virtio', '9p']) {
+for (const module of ['netfs', '9pnet', '9pnet_virtio', '9p', 'failover', 'net_failover', 'virtio_net']) {
   const compressed = await fs.readFile(path.join(root, `images/modules/${module}.ko.gz`));
   moduleHashes[`${module}.ko.gz`] = sha256(compressed);
   replacements.set(`${moduleDir}/${module}.ko`, { mode: 0o100644, data: gunzipSync(compressed) });

@@ -11,6 +11,20 @@ mkdir -p /dev/pts /run /tmp /workspace /home/agent /mnt
 mount -t devpts devpts /dev/pts
 mount -t tmpfs -o mode=1777,size=64m tmpfs /tmp
 mount -t tmpfs -o mode=0755,size=256m tmpfs /workspace
+case " $(cat /proc/cmdline) " in
+    *" v86_network=proxy "*)
+        for module in failover net_failover virtio_net; do
+            insmod "/usr/local/lib/v86-modules/$module.ko"
+        done
+        ip link set lo up
+        ip addr add 192.168.86.100/24 dev eth0
+        ip link set eth0 up
+        ip route add default via 192.168.86.1
+        # HTTP clients pass hostnames to the managed proxy. Guest DNS is not
+        # needed, and the host Wisp relay cannot dial arbitrary TCP targets.
+        : > /etc/resolv.conf
+        ;;
+esac
 chown 1000:1000 /workspace /home/agent
 chmod 0700 /home/agent
 chmod 0600 /dev/ttyS1

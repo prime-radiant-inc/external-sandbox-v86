@@ -12,7 +12,8 @@ checkout.
   No standalone license file was present in the original project.
 - The original `dev-linux` initramfs SHA-256 was
   `731ab294bcdba73b9ea8f7baf70a3d70f623cdba3d72e5e3cc6d0a2b02b19f05`.
-  It was repacked with the updated `images/init` and the four 9p modules;
+  It was repacked with the updated `images/init`, the four 9p modules, and
+  the three optional networking modules (`failover`, `net_failover`, `virtio_net`);
   other archive records were preserved. Current asset hashes are in
   `images/linux/image.json`.
 - The kernel and modules come from Alpine's x86
@@ -35,9 +36,16 @@ checkout.
 - The JavaScript/WebAssembly emulator is npm package `v86` version 0.5.458.
   Its BSD-style two-clause license is distributed by the npm package and
   reproduced in `images/V86-LICENSE`.
+- The optional managed proxy uses npm package `node-forge` version 1.4.0
+  to generate ephemeral host-side X.509 certificates. Actual TLS connections
+  use Node's built-in TLS implementation. The dependency's license is bundled
+  in its npm package; no private key or upstream API credential enters the guest.
 
 `images/build.mjs` and `images/build-in-container.sh` provide a complete
 source-based guest rebuild; `scripts/prepare-image.mjs` provides the fast
 deterministic initramfs patch used for the bundled image. The build recipes
 were adapted from the original project to retain the 9p module dependency
 closure and mount the selected host directories before starting the agent.
+The managed-proxy branch also retains the virtio-net dependency closure from
+the same checksum-verified kernel package. The pinned kernel version and
+original guest agent are unchanged.

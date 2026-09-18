@@ -8,6 +8,8 @@ import { startGuestProcess } from './guest/process.js';
 import type { OutputHandler, StreamExecRequest, StreamingProcess } from './streaming.js';
 import { createHostFilesystem, type Mount } from './host-filesystem.js';
 import type { ExecRequest, ExecResult } from './http.js';
+import { startProxyRelay, GUEST_PROXY_URL, type ProxyRelay } from './network/wisp-relay.js';
+import { installV86NetworkGuard } from './network/v86-network-guard.js';
 
 export interface VMMount extends Mount { preservedPaths?: string[] }
 export interface VMOptions {
@@ -16,6 +18,8 @@ export interface VMOptions {
   memoryMiB?: number;
   bootTimeoutMs?: number;
   onBootLog?: (text: string) => void;
+  /** Host-local managed proxy. Only its public CA and placeholder environment enter the guest. */
+  managedNetwork?: { proxyPort: number; caCertificate: string; env?: Record<string, string> };
 }
 interface Asset { path: string; sha256: string }
 
@@ -38,6 +42,7 @@ export class ShellVM {
     private readonly guest: GuestClient,
     private readonly filesystem: Awaited<ReturnType<typeof createHostFilesystem>>,
     private readonly options: VMOptions,
+    private readonly relay?: ProxyRelay,
   ) {}
 
   static async boot(options: VMOptions): Promise<ShellVM> {
@@ -48,20 +53,28 @@ export class ShellVM {
     if (!Number.isSafeInteger(memory) || memory < 128 || memory > 2048) throw new Error('Memory must be 128–2048 MiB');
     const [bios, vga, kernel, initrd] = await Promise.all(['bios', 'vgaBios', 'bzimage', 'initrd'].map(key => asset(directory, manifest.assets[key])));
     const aliases = options.mounts.filter(m => m.preservedPaths?.length).map(m => ({ name: m.name, paths: m.preservedPaths }));
-    const cmdline = manifest.cmdline + (aliases.length ? ` v86_mounts=${Buffer.from(JSON.stringify(aliases)).toString('base64url')}` : '');
+    const cmdline = manifest.cmdline + (aliases.length ? ` v86_mounts=${Buffer.from(JSON.stringify(aliases)).toString('base64url')}` : '') + (options.managedNetwork ? ' v86_network=proxy' : '');
     if (Buffer.byteLength(cmdline) > 2000) throw new Error('Too many preserved paths for the Linux kernel command line; shorten paths or omit --preserve-paths');
     const filesystem = await createHostFilesystem(options.mounts);
     const require = createRequire(import.meta.url);
-    const emulator = new V86({
-      wasm_path: path.join(path.dirname(require.resolve('v86')), 'v86.wasm'),
-      memory_size: memory * 1024 * 1024, vga_memory_size: 2 * 1024 * 1024,
-      bios: { buffer: bios }, vga_bios: { buffer: vga }, bzimage: { buffer: kernel }, initrd: { buffer: initrd },
-      cmdline, uart1: true, autostart: false,
-      filesystem: { handle9p: filesystem.handle9p },
-      disable_keyboard: true, disable_mouse: true, disable_speaker: true,
-    });
+    let relay: ProxyRelay | undefined;
+    let emulator: V86;
+    try {
+      if (options.managedNetwork) relay = await startProxyRelay({ proxyPort: options.managedNetwork.proxyPort });
+      emulator = new V86({
+        wasm_path: path.join(path.dirname(require.resolve('v86')), 'v86.wasm'),
+        memory_size: memory * 1024 * 1024, vga_memory_size: 2 * 1024 * 1024,
+        bios: { buffer: bios }, vga_bios: { buffer: vga }, bzimage: { buffer: kernel }, initrd: { buffer: initrd },
+        cmdline, uart1: true, autostart: false,
+        filesystem: { handle9p: filesystem.handle9p },
+        disable_keyboard: true, disable_mouse: true, disable_speaker: true,
+        // Static DNS stays entirely inside v86. Wisp's default DoH would make host
+        // fetch() requests outside the policy proxy, so it must never be enabled.
+        ...(relay ? { net_device: { type: 'virtio' as const, relay_url: relay.relayUrl, dns_method: 'static' as const } } : {}),
+      });
+    } catch (error) { await relay?.close(); await filesystem.close(); throw error; }
     const guest = new GuestClient(frame => emulator.serial_send_bytes(1, frame));
-    const vm = new ShellVM(emulator, guest, filesystem, options);
+    const vm = new ShellVM(emulator, guest, filesystem, options, relay);
     guest.setMaxListeners(40);
     emulator.add_listener('serial1-output-byte', (value: number) => guest.feed(Uint8Array.of(value)));
     let log = '';
@@ -81,9 +94,24 @@ export class ShellVM {
           if (message.version !== 1) reject(new Error('Unsupported guest agent protocol')); else resolve();
         };
         guest.on('event', event); guest.on('failure', fail);
-        emulator.add_listener('emulator-loaded', () => { void emulator.run(); });
+        emulator.add_listener('emulator-loaded', () => {
+          try {
+            if (relay) {
+              const guard = installV86NetworkGuard((emulator as unknown as { network_adapter: unknown }).network_adapter,
+                () => guest.fail(new Error('Managed network buffer limit exceeded; VM stopped')),
+                (id, bytes) => relay!.acknowledgeReceive(id, bytes));
+              relay.setGuestQueueSize(id => guard.queuedBytes(id));
+            }
+            void emulator.run();
+          } catch (error) { fail(error instanceof Error ? error : new Error(String(error))); }
+        });
       });
       guest.on('failure', () => { void vm.destroy().catch(() => {}); });
+      if (options.managedNetwork) {
+        const encoded = Buffer.from(options.managedNetwork.caCertificate).toString('base64');
+        const setup = await vm.execute({ command: `umask 077; printf '%s' '${encoded}' | base64 -d > /home/agent/.v86-proxy-ca.pem`, cwd: '/home/agent' });
+        if (setup.exitCode !== 0) throw new Error('Failed to install managed proxy public CA in guest');
+      }
       return vm;
     } catch (error) { await vm.destroy(); throw error; }
   }
@@ -91,7 +119,7 @@ export class ShellVM {
   info() {
     return {
       status: this.stopped ? 'stopped' : 'ready', backend: 'v86', architecture: 'i686',
-      shell: '/bin/bash', network: false,
+      shell: '/bin/bash', network: this.relay ? 'managed-http' : false,
       mounts: this.options.mounts.map(m => ({ ...m, guestPath: `/mnt/${m.name}` })),
       defaultCwd: this.options.mounts[0] ? `/mnt/${this.options.mounts[0].name}` : '/workspace',
       activeCommands: this.active,
@@ -104,7 +132,15 @@ export class ShellVM {
     if (signal?.aborted) throw new Error('Request cancelled');
     this.active++;
     try {
-      const process = await startGuestProcess(this.guest, request, {
+      const caPath = '/home/agent/.v86-proxy-ca.pem';
+      const defaults = this.relay ? {
+        http_proxy: GUEST_PROXY_URL, https_proxy: GUEST_PROXY_URL,
+        HTTP_PROXY: GUEST_PROXY_URL, HTTPS_PROXY: GUEST_PROXY_URL, no_proxy: '', NO_PROXY: '',
+        SSL_CERT_FILE: caPath, CURL_CA_BUNDLE: caPath, REQUESTS_CA_BUNDLE: caPath,
+        GIT_SSL_CAINFO: caPath, NODE_EXTRA_CA_CERTS: caPath,
+        ...this.options.managedNetwork?.env,
+      } : {};
+      const process = await startGuestProcess(this.guest, { ...request, env: { ...defaults, ...request.env } }, {
         defaultCwd: this.info().defaultCwd, onOutput,
         onUnresponsive: () => this.destroy(),
       }, signal);
@@ -139,7 +175,7 @@ export class ShellVM {
     if (this.stopped) return;
     this.stopped = true;
     this.guest.fail(new Error('VM stopped'));
-    await this.emulator.destroy();
-    await this.filesystem.close();
+    try { await this.emulator.destroy(); }
+    finally { await this.relay?.close(); await this.filesystem.close(); }
   }
 }
