@@ -49,3 +49,15 @@ closure and mount the selected host directories before starting the agent.
 The managed-proxy branch also retains the virtio-net dependency closure from
 the same checksum-verified kernel package. The pinned kernel version and
 original guest agent are unchanged.
+
+The browser terminal, Copy session feature, proxy editor HTML/CSS/JavaScript,
+and browser client tests were copied or ported from the user's Python
+`sandbox-exec-server` project, checked at commit
+`6e851e3324622bb8a0e9c252d840e03b72f2908b`. Terminal JavaScript is copied
+unchanged; server routes and live proxy management are adapted to Node.js.
+All assets are bundled here, with no runtime dependency on that checkout.
+
+Startup package support extends `images/init` and repacks the base initramfs.
+At runtime a separate in-memory archive supplies package names and the public
+CA; downloaded packages are installed only inside the ephemeral VM. The base
+package inventory describes the bundled image, before optional installation.

@@ -6,7 +6,7 @@ mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev
 # Diagnostics belong on ttyS0; the framed command protocol uses ttyS1.
 exec >/dev/ttyS0 2>&1
-trap 'echo "v86-shell guest init failed"; exit 1' EXIT
+trap 'echo "V86_BOOT_FATAL: Guest initialization failed"; exit 1' EXIT
 mkdir -p /dev/pts /run /tmp /workspace /home/agent /mnt
 mount -t devpts devpts /dev/pts
 mount -t tmpfs -o mode=1777,size=64m tmpfs /tmp
@@ -28,6 +28,56 @@ esac
 chown 1000:1000 /workspace /home/agent
 chmod 0700 /home/agent
 chmod 0600 /dev/ttyS1
+# The host adds this root-only file in a separate initramfs archive. It contains
+# package names and a public CA, never credentials or host environment values.
+# Install before mounting host directories or starting the command agent.
+python3 - <<'PY'
+import json
+import os
+import re
+import subprocess
+
+config_path = '/etc/v86-bootstrap.json'
+if os.path.exists(config_path):
+    try:
+        with open(config_path, 'rb') as source:
+            raw = source.read(160 * 1024 + 1)
+        os.unlink(config_path)
+        if len(raw) > 160 * 1024:
+            raise ValueError('Bootstrap too large')
+        config = json.loads(raw)
+        if (not isinstance(config, dict) or set(config) != {'version', 'packages', 'caCertificate', 'proxyUrl'}
+                or config['version'] != 1 or config['proxyUrl'] != 'http://192.168.86.1:8080'):
+            raise ValueError('Invalid bootstrap')
+        packages = config['packages']
+        if (not isinstance(packages, list) or len(packages) > 64 or any(
+                not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.-]{0,127}', name)
+                for name in packages)):
+            raise ValueError('Invalid startup packages')
+        certificate = config['caCertificate']
+        if not isinstance(certificate, str) or not certificate or len(certificate.encode()) > 128 * 1024:
+            raise ValueError('Invalid public certificate')
+        ca_path = '/home/agent/.v86-proxy-ca.pem'
+        with open(ca_path, 'w') as target:
+            target.write(certificate)
+        os.chmod(ca_path, 0o444)
+        if packages:
+            if 'v86_network=proxy' not in open('/proc/cmdline').read().split():
+                raise ValueError('Managed networking is required')
+            with open('/etc/apk/repositories', 'w') as repositories:
+                repositories.write('https://dl-cdn.alpinelinux.org/alpine/v3.21/main\n'
+                                   'https://dl-cdn.alpinelinux.org/alpine/v3.21/community\n')
+            environment = dict(os.environ, http_proxy=config['proxyUrl'], https_proxy=config['proxyUrl'],
+                               HTTP_PROXY=config['proxyUrl'], HTTPS_PROXY=config['proxyUrl'],
+                               no_proxy='', NO_PROXY='', SSL_CERT_FILE=ca_path, SSL_CA_CERT_FILE=ca_path)
+            print('v86-shell: installing startup packages: ' + ', '.join(packages), flush=True)
+            subprocess.run(['apk', '--no-cache', 'add', '--', *packages], env=environment,
+                           check=True, timeout=240)
+    except Exception:
+        # Never include the configuration or arbitrary validation text in errors.
+        print('V86_BOOT_FATAL: Startup package installation failed; check package names and proxy policy.', flush=True)
+        raise SystemExit(1)
+PY
 for module in netfs 9pnet 9pnet_virtio 9p; do
     insmod "/usr/local/lib/v86-modules/$module.ko"
 done

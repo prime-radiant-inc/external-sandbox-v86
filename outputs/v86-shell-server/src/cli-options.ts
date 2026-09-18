@@ -2,6 +2,7 @@ import { realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { VMMount } from './vm.js';
+import { normalizePackages } from './guest-packages.js';
 
 function aliasAllowed(target: string) {
   const protectedPaths = ['/bin', '/sbin', '/etc', '/usr', '/lib', '/lib64', '/dev', '/proc', '/sys', '/run', '/mnt', '/workspace', '/home/agent'];
@@ -12,6 +13,7 @@ export async function parseServerOptions(args: string[]) {
   let port = 8686, memoryMiB = 512, preserve = false, verbose = false;
   let image = fileURLToPath(new URL('../images/linux', import.meta.url));
   let proxyConfig: string | undefined;
+  const requestedPackages: string[] = [];
   const specs: { value: string; mode: 'ro' | 'rw' }[] = [];
   let help = false;
   for (let i = 0; i < args.length; i++) {
@@ -19,6 +21,12 @@ export async function parseServerOptions(args: string[]) {
     if (arg === '--help' || arg === '-h') { help = true; break; }
     if (arg === '--preserve-paths') { preserve = true; continue; }
     if (arg === '--verbose') { verbose = true; continue; }
+    if (arg === '--packages' || arg.startsWith('--packages=')) {
+      const value = arg === '--packages' ? args[++i] : arg.slice('--packages='.length);
+      if (value === undefined) throw new Error('--packages needs a value');
+      requestedPackages.push(...value.split(','));
+      continue;
+    }
     if (arg === '--') { specs.push(...args.slice(i + 1).map(value => ({ value, mode: 'rw' as const }))); break; }
     if (['--mount', '--mount-ro', '--mount-rw', '--port', '--memory', '--image', '--proxy-config'].includes(arg)) {
       const value = args[++i];
@@ -31,7 +39,9 @@ export async function parseServerOptions(args: string[]) {
     } else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`);
     else specs.push({ value: arg, mode: 'rw' });
   }
-  if (help) return { help, port, memoryMiB, image, proxyConfig, verbose, mounts: [] as VMMount[] };
+  if (help) return { help, port, memoryMiB, image, proxyConfig, verbose, packages: [], mounts: [] as VMMount[] };
+  const packages = normalizePackages(requestedPackages);
+  if (packages.length && !proxyConfig) throw new Error('--packages requires --proxy-config allowing https://dl-cdn.alpinelinux.org');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('Port must be an integer from 0 to 65535');
   const mounts: VMMount[] = [];
   for (const { value: spec, mode } of specs) {
@@ -51,5 +61,5 @@ export async function parseServerOptions(args: string[]) {
     }
     mounts.push({ name, hostPath, mode, ...(preservedPaths ? { preservedPaths } : {}) });
   }
-  return { help, port, memoryMiB, image, proxyConfig, verbose, mounts };
+  return { help, port, memoryMiB, image, proxyConfig, verbose, packages, mounts };
 }

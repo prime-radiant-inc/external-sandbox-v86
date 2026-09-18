@@ -71,6 +71,7 @@ const initrd = gzipSync(Buffer.concat([packed, Buffer.alloc((512 - packed.length
 await fs.writeFile(path.join(imageDir, 'initrd.img'), initrd);
 manifest.v86Version = '0.5.458';
 manifest.memoryMiB = 512;
+manifest.capabilities = { ...manifest.capabilities, startupPackages: true };
 for (const asset of Object.values(manifest.assets)) {
   const bytes = await fs.readFile(path.join(imageDir, asset.path));
   asset.sha256 = sha256(bytes);

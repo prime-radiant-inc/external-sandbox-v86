@@ -1,0 +1,406 @@
+Commands: npm run check; npm test; V86_TEST_PACKAGE_NETWORK=1 node --import tsx --test --test-concurrency=1 test/integration/*.test.ts; npm run test:python; npm pack; npx tarball smoke test.
+
+The initial integration run found an existing test race (file creation preceded its marker write). The test now waits for the marker. The complete rerun below passed.
+
+
+> v86-shell-server@0.3.0 test
+> node --import tsx --test test/*.test.ts test/*.test.mjs
+
+(node:39971) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ browser pages permit only loopback and exact same origin including port (1.338709ms)
+✔ shared browser helpers retain duplicate headers and emit restrictive headers (0.291833ms)
+(node:39972) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ terminal token authorizes only same-origin command sockets and is never negotiated (31.430791ms)
+✔ browser socket rejects absent/wrong tokens, origins, cross-site metadata, and other server tokens (16.849708ms)
+(node:39973) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ CLI preserves per-directory modes, including explicit/default read-write (38.362167ms)
+✔ mount mode options reject missing values and duplicate names (11.466333ms)
+(node:39975) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ startup package flags support comma lists, equals syntax, repetition and deduplication (1.416834ms)
+✔ startup package flags reject unsafe names and require an explicit managed proxy (0.60325ms)
+(node:39976) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ guest file URIs remain local, absolute, and encoded without touching host paths (1.545584ms)
+✔ readFile and writeFile preserve binary bytes with bounded guest chunks (2.361667ms)
+✔ file handles retain a bounded read snapshot until closed (0.408834ms)
+✔ metadata, directory, canonicalize, create and remove preserve Codex field names and defaults (0.453ms)
+✔ invalid or oversized data and unvalidated sandbox policies fail before guest writes (10.618459ms)
+✔ cancellation between read chunks stops further guest requests and close invalidates handles (8.084709ms)
+✔ copy performs bounded guest reads and writes and refuses recursive self-copy or symlinks (0.306167ms)
+✔ walk uses the verified schema, honors bounds and hidden pruning, and avoids symlink cycles (0.669167ms)
+✔ malformed guest data cannot produce endless reads or oversized allocations (0.510292ms)
+✔ the full 8 MiB file limit is supported without oversized guest frames (107.489083ms)
+✔ read-handle counts and identifier byte lengths are bounded (3.500834ms)
+✔ copy writes all chunks and children before restoring source file and directory permissions (0.530709ms)
+(node:39977) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ Codex handshake and exact argv execution have ordered streaming/replay and exit events (7.573667ms)
+✔ Codex filesystem missing paths use the protocol not-found error code (0.612875ms)
+✔ Codex environment policy filters guest defaults, supports question marks, and removes transport credentials (0.455458ms)
+✔ Codex stdin retries are idempotent, interrupts signal the guest, disconnect cancels it (0.676875ms)
+✔ Codex does not silently discard additional sandbox or unsupported terminal requirements (0.343292ms)
+✔ Codex validates initialization, process IDs, paths and environment without host fallback (0.438708ms)
+(node:39978) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ npm-style symlink passes the complete shell command and stdin literally to uv (479.822041ms)
+✔ propagates the uv client exit status (314.533625ms)
+✔ missing uv reports an actionable error with status 125 (121.277084ms)
+✔ signals sent only to the launcher reach the client and wait for its cancellation (659.573708ms)
+(node:39979) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ startup package names are validated, ordered, deduplicated, and bounded (1.733917ms)
+✔ bootstrap is a separate gzip newc archive with a root-only JSON file and fixed proxy (0.857875ms)
+✔ packages require managed networking and capable images before emulator allocation (6.32075ms)
+(node:39980) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ direct execution preserves exact argv, arg0 and replacement environment without a shell (3.017ms)
+✔ direct argv defaults and existing shell requests retain their distinct protocol forms (0.457125ms)
+✔ INT and TERM signals preserve live stdin and output and become no-ops after exit (0.412875ms)
+✔ an explicit signal failure is returned without cancelling a still-live process (0.505958ms)
+✔ internal timeout zero permits a long-lived command without immediate cancellation (20.779792ms)
+✔ guest process emits binary stdout/stderr before exit, including startup output (7.624ms)
+✔ incremental stdin writes retain ordering, retry guest pressure, then close at EOF (6.653625ms)
+✔ cancellation bypasses queued stdin and cleans up listeners (5.654334ms)
+✔ timeout and output limit stop execution without emitting bytes beyond the limit (19.716709ms)
+✔ failure to acknowledge start is bounded even before a process ID exists (17.534209ms)
+✔ output callback failure cancels and waits for confirmed exit before rejecting (6.237291ms)
+✔ guest closed stdin and immediate exit are handled without hanging (0.426541ms)
+✔ unrelated startup output cannot overflow or cancel a quiet concurrent process (1.329041ms)
+✔ a matching startup output overflow fails explicitly, including an already-exited process (1.581ms)
+(node:39981) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ host files are live in both directions, including binary writes and truncation (29.109458ms)
+✔ create, append, mkdir, rename, hardlink and directory listing reach the host (24.590083ms)
+✔ symlinks are returned to the guest but never followed by host I/O (24.32525ms)
+✔ an existing fid cannot be redirected through a parent replaced with a symlink (18.100042ms)
+✔ open files remain readable after unlink and directory rename updates fids (17.077584ms)
+✔ mount boundaries, malformed names, special nodes and Linux errno are enforced (14.89525ms)
+✔ read-only mounts remain live for reads while refusing every writable open flag and direct write (18.560833ms)
+✔ read-only 9P mutations cannot alter content, metadata, or directory entries (9.196333ms)
+✔ rejects mixed-mode canonical aliases and overlapping parents in either input order (12.978666ms)
+✔ pre-existing hardlinks in writable mounts cannot change read-only files through inode aliases (7.521792ms)
+✔ a writable fid is rechecked when the host later adds a read-only hardlink alias (4.890666ms)
+✔ hardlink creation is refused with any read-only mount without freezing the writable source (7.822375ms)
+(node:39982) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ exec preserves exact stdout, stderr, and a nonzero guest exit code (54.514292ms)
+✔ health and mounts report VM information (6.257042ms)
+✔ rejects web origins and DNS rebinding hosts before executing (6.897ms)
+✔ invalid commands, paths, environments, and resource limits never execute (14.384208ms)
+✔ reports JSON, body size, content type, method, and routing errors (7.881167ms)
+✔ passes explicit bounds and returns timeout and signal details unchanged (0.905416ms)
+✔ executor failures become JSON server errors (0.712209ms)
+✔ disconnecting an execution request aborts its executor signal (0.914417ms)
+(node:39983) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ HTTPS proxy replaces exact placeholder and validates upstream CA (217.542417ms)
+✔ unauthorized inner token and different Host never reach upstream (199.376458ms)
+✔ unauthorized CONNECT is rejected before DNS or upstream connections (149.394042ms)
+✔ mismatched TLS SNI fails closed (156.2485ms)
+✔ response headers and literal secret split across chunks are redacted (154.837792ms)
+✔ SSE response arrives before upstream finishes, redirects are not followed (206.040291ms)
+✔ upstream certificate verification fails closed and compressed responses are rejected (322.234542ms)
+✔ duplicate authorization and upgrade requests are rejected before resolution (153.988958ms)
+✔ plain HTTP uses exact allowlist and strips proxy credentials and hop headers (31.471958ms)
+✔ HTTPS IPv6 literal authority receives an IP certificate and correct upstream verification (151.668084ms)
+✔ oversized request is rejected before resolving or connecting upstream (238.649708ms)
+✔ client disconnect closes the upstream response (164.795458ms)
+✔ POST request body is streamed through the TLS proxy unchanged (141.867583ms)
+(node:39984) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ proxy configuration loads host secrets without exporting them to guest settings (6.825542ms)
+✔ configuration parse failures do not echo file contents and reject oversized files (2.394875ms)
+(node:39985) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ compiled policy exposes copied normalized configuration and retains private host compilation inputs (1.20325ms)
+✔ management configuration redacts accidental secret appearances without exposing internal key values (0.677333ms)
+✔ ephemeral leaf certificate cache can be cleared without changing its trusted CA (213.761459ms)
+✔ live policy updates validate atomically, preserve guestEnv, and apply without restarting the listener (45.243041ms)
+✔ activity omits queries and bodies, records decisions, and redacts current and newly configured secrets (39.443459ms)
+✔ activity is bounded to 500 events, and redaction happens before display truncation (196.962708ms)
+✔ applying a policy closes in-flight upstream responses and idle proxy sockets (61.388416ms)
+✔ a DNS lookup already in flight cannot connect upstream after its policy is revoked (59.0365ms)
+✔ updates revoke TLS streams and tunnels, retain upstream trust, and use replacement credentials (162.106459ms)
+(node:39986) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ proxy management serves the cloned page and a token-protected safe snapshot (31.963ms)
+✔ API requires exactly one correct management token unique to this server (10.09675ms)
+✔ same-origin, loopback Host, and fetch metadata checks protect both proxy routes (42.927458ms)
+✔ valid policy updates are atomic and validation exceptions never leak secrets (4.7585ms)
+✔ cross-origin mutation and unsupported methods never update policy (3.700333ms)
+✔ invalid UTF-8 and nonobject or nonfinite JSON never reach the proxy (4.511917ms)
+✔ policy request encoding and byte caps are checked for declared and streamed bodies (6.198291ms)
+✔ activity is JSON data, never interpolated into HTML; snapshot errors stay generic (4.098875ms)
+✔ cloned browser client preserves dirty edits during polling and discards to latest policy (2.840959ms)
+✔ cloned browser client ignores stale polls after Apply and renders hostile strings safely (2.007083ms)
+(node:39987) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ injects a host-only credential only for the exact allowed request and placeholder (1.900666ms)
+✔ rejects other origins, methods, paths, and credential values without leaking secrets (0.439667ms)
+✔ permits ordinary HTTP without credentials and preserves noncredential request headers (0.254667ms)
+✔ rejects malformed and ambiguous configuration with generic errors (0.533833ms)
+✔ freezes copied policy configuration against caller mutation (0.14225ms)
+✔ rejects actual secret values accidentally exposed in placeholders or guest environments (0.173208ms)
+✔ bounds origin, environment, and credential configuration size (0.892417ms)
+✔ default address policy permits public IPv4 and IPv6 and blocks special-purpose addresses (2.077833ms)
+✔ explicit CIDRs permit only listed ranges, including private networks and mapped IPv4 (0.366709ms)
+✔ looks up all DNS answers once and only returns a permitted pinned address (5.361708ms)
+✔ IP literal origins bypass DNS and still enforce destination policy (0.164833ms)
+(node:39988) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ prefix sends its one complete quoted multiline command without host evaluation (193.177458ms)
+✔ preserved paths retain the host cwd path inside the VM (126.590541ms)
+✔ explicit guest cwd, stdin opt-in, and execution limits pass through (105.922042ms)
+✔ missing cwd mapping and nonlocal URLs fail without command execution (367.317291ms)
+✔ prefix uses shell exit conventions for VM signals, timeouts, and output caps (364.188916ms)
+✔ oversized forwarded stdin is rejected before execution (104.364ms)
+✔ prefix rejects redirects instead of sending commands to another endpoint (107.536333ms)
+✔ SIGTERM aborts the API request and exits with shell status 143 (103.761584ms)
+(node:39993) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ separate streaming decoders preserve split Unicode and flush incomplete bytes (1.855959ms)
+✔ stdin sends one 32 KiB chunk at a time and EOF follows the final acknowledgement (7.810958ms)
+✔ stdin queue counts in-flight bytes and rejects oversized input atomically (0.811208ms)
+✔ scrollback uses inert text and bounds UTF-8 bytes and DOM nodes (0.561584ms)
+✔ copy text preserves stream chunks, newlines, commands and literal markup (0.117167ms)
+✔ copy text contains only retained scrollback and becomes empty after clearing (0.076625ms)
+✔ copy snapshots a running session without submitting input, changing output or exposing the token (0.818833ms)
+✔ clipboard denial falls back to a temporary textarea and restores focus and selection (0.293833ms)
+✔ missing clipboard API uses the fallback and reports fallback failure without leaving temporary input (0.161292ms)
+✔ the copy button is wired and an empty cleared session never touches the clipboard (0.415708ms)
+✔ history is bounded and restores the in-progress draft (0.510917ms)
+✔ a command starts exactly once with token subprotocol and changes the form to stdin (9.148709ms)
+✔ stale socket callbacks cannot write output or stop a newer command (0.43925ms)
+✔ connection failures never reconnect or replay and discard pending input (0.880125ms)
+✔ keyboard shortcuts preserve copy selection and support cancel, EOF, clear and history (0.24475ms)
+✔ Shift+Enter and IME composition do not execute and examples only populate the input (0.099ms)
+✔ authorization mismatch, missing token and invalid cwd never run a command (0.131584ms)
+✔ cancel during startup retains its watchdog after a racing started event (0.094917ms)
+✔ exit descriptions retain timeout, output cap, signal and duration (0.031417ms)
+✔ default browser timers retain their Window/global receiver (0.108916ms)
+✔ pagehide closes the command while a back-forward-cache restore keeps the form usable (0.113833ms)
+(node:39994) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ terminal page escapes guest paths once and includes only the enabled proxy link (17.497ms)
+✔ terminal assets carry restrictive headers and fresh style nonces (2.023917ms)
+✔ terminal routes reject wrong methods, origins, fetch sites and nonlocal hosts (8.066334ms)
+✔ terminal WebSockets require exact origin and the per-server token in exactly two protocols (1.89725ms)
+(node:39999) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ allows bounded Wisp DATA and ordinary control frames (1.098584ms)
+✔ stops the VM before a slow guest can exceed the per-stream receive queue (0.154792ms)
+✔ includes retained allocation of drained and closing connections in the VM-wide budget (2.6805ms)
+✔ predicts ring-buffer growth before aggregate allocation exceeds the budget (0.158125ms)
+✔ limits guest TCP connection creation including connections awaiting a close acknowledgement (1.157375ms)
+✔ fails closed when the pinned v86 adapter layout is missing or changes (2.355791ms)
+✔ does not permit orphaned Wisp callbacks to hide live receive buffers (0.078625ms)
+✔ bounds guest-to-host frames while upstream credits are stalled (0.125417ms)
+✔ retains callbacks removed from the TCP table in allocation and connection accounting (0.121292ms)
+✔ releases accounting after both the TCP state and Wisp callbacks disappear (4.760458ms)
+✔ reports current unread guest bytes and acknowledges DATA only after delivery (0.809625ms)
+✔ stopped guard pauses relay reads and never acknowledges rejected DATA (0.105958ms)
+(node:40000) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ websocket streams separate binary-safe outputs before completion, then exit and close 1000 (17.366334ms)
+✔ buffers early output until started is sent (2.872542ms)
+✔ stdin writes are acknowledged only after acceptance and EOF follows all writes (23.315291ms)
+✔ stdin can arrive during process startup and remains ordered (1.369541ms)
+✔ cancel bypasses an outstanding stdin write (27.601292ms)
+✔ disconnect aborts execution even while startup is pending (1.855458ms)
+✔ server close cancels active websocket processes and closes upgraded sockets (1.306334ms)
+✔ startup and completion failures send an error without a fabricated exit (2.198709ms)
+✔ closed process stdin is benign and does not discard remaining process output (1.255125ms)
+✔ rejects invalid protocol messages without executing or accepting invalid stdin (13.082083ms)
+✔ rejects duplicate stdin IDs, writes after EOF, and writes when stdin was disabled (2.867708ms)
+✔ inbound stdin queue is bounded during startup and cancellation bypasses it (4.126541ms)
+✔ early outbound output is bounded instead of silently discarded (2.602ms)
+✔ upgrade rejects browser origins, untrusted hosts, and wrong paths (2.693375ms)
+✔ rejects binary websocket frames and malformed JSON (2.07275ms)
+✔ slow websocket readers trigger bounded-buffer cancellation and receive an explicit error (4.191625ms)
+✔ idle websocket connections must start within the deadline (1.0555ms)
+✔ oversized websocket frames cancel execution (2.175625ms)
+✔ completion racing a pending stdin write preserves exit without a late acknowledgement or error (1.36425ms)
+✔ EOF is acknowledged before exit even when closeStdin synchronously completes the process (1.186167ms)
+✔ closeAllConnections closes current upgraded clients while allowing later connections (1.482417ms)
+(node:40001) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ Wisp relay carries only the fixed guest proxy endpoint (16.711125ms)
+✔ Wisp relay rejects direct TCP, hostname targets, and UDP without dialing (1.983625ms)
+✔ Wisp relay acknowledges guest close and permits a fresh stream (2.431334ms)
+✔ relay bounds in-flight receive bytes and resumes when guest credit returns (105.146625ms)
+✔ Wisp relay rejects malformed frames and cannot be used at an unguessable-path mismatch (3.033542ms)
+ℹ tests 183
+ℹ suites 0
+ℹ pass 183
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2608.041166
+
+
+(node:41510) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+▶ browser terminal and live proxy management work against real v86 Linux
+  ✔ page assets expose terminal and copy UI while legacy execution stays Origin-free (5.668917ms)
+  ✔ browser session streams stdout and stderr before stdin and preserves EOF/nonzero exit (102.957416ms)
+  ✔ browser commands write through the RW mount and cannot modify the RO host mount (91.170458ms)
+  ✔ cancel from the browser protocol kills the running guest command (52.284333ms)
+  ✔ managed HTTPS replaces placeholder credentials and redacts output and activity (1799.28025ms)
+  ✔ invalid policy updates preserve live access and guestEnv changes require restart (1212.711833ms)
+  ✔ applying a new policy revokes an existing tunnel and blocks subsequent guest requests (3289.742792ms)
+✔ browser terminal and live proxy management work against real v86 Linux (12477.5565ms)
+(node:41559) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ Codex 0.154.0 exec-server executes in v86 with live RO and RW mounts (6129.412667ms)
+(node:41619) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+▶ real v86 Codex exec-server protocol executes processes and enforces mount modes
+  ✔ exact argv stays literal, stderr and nonzero exit are sequenced and replayable (564.048125ms)
+  ✔ later stdin is streamed after ready output and write IDs prevent duplicate input (292.632791ms)
+  ✔ arg0 and replacement environment policy reach the guest process (43.185292ms)
+  ✔ interrupt delivers catchable SIGINT and terminate kills blocked guest processes (454.476375ms)
+  ✔ filesystem RPC reads binary guest data and writes only writable mounts (115.178708ms)
+  ✔ file handles retain a bounded snapshot and close releases the handle (63.431667ms)
+  ✔ copy and bounded walks use guest paths and cannot modify read-only exports (175.05875ms)
+  ✔ unsupported PTY and managed sandbox requests fail explicitly (33.109792ms)
+  ✔ disconnect cancels the process group including a guest descendant (119.07025ms)
+  ✔ browser Origin cannot open the Codex execution endpoint (1.133291ms)
+✔ real v86 Codex exec-server protocol executes processes and enforces mount modes (7220.973125ms)
+(node:41661) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+▶ real VM enforces read-only mounts while preserving live reads and writable mounts
+  ✔ read-only mount and preserved alias show live host changes (141.539958ms)
+  ✔ read-only mount rejects overwrite (27.449041ms)
+  ✔ read-only mount rejects append (23.772666ms)
+  ✔ read-only mount rejects truncate (40.435583ms)
+  ✔ read-only mount rejects create (54.908917ms)
+  ✔ read-only mount rejects mkdir (54.272625ms)
+  ✔ read-only mount rejects rename (58.030958ms)
+  ✔ read-only mount rejects unlink (49.628625ms)
+  ✔ read-only mount rejects rmdir (51.708375ms)
+  ✔ read-only mount rejects hard link (47.070833ms)
+  ✔ read-only mount rejects symlink (56.483541ms)
+  ✔ read-only mount rejects chmod file (51.006208ms)
+  ✔ read-only mount rejects touch modification time (50.294458ms)
+  ✔ read-only mount rejects touch access time (49.433834ms)
+  ✔ read-only mount rejects chmod root (47.204291ms)
+  ✔ read-only mount rejects touch root (46.35875ms)
+  ✔ read-only mount rejects move into read-only directory (52.732792ms)
+  ✔ read-only mount rejects write via preserved path (47.016208ms)
+  ✔ read-only mount rejects create via preserved path (43.675667ms)
+  ✔ read-only mount rejects change root via preserved path (41.884042ms)
+  ✔ read-only mount rejects write via writable-mount symlink (39.827959ms)
+  ✔ read-only mount rejects write via pre-existing writable-mount hard link (38.62075ms)
+  ✔ read-only mount rejects chmod via pre-existing writable-mount hard link (20.786417ms)
+  ✔ read-only mount rejects unlink pre-existing writable-mount hard link (48.732458ms)
+  ✔ read-only mount rejects rename pre-existing writable-mount hard link (43.366166ms)
+  ✔ read-only mount rejects overwrite pre-existing writable-mount hard link (45.021375ms)
+  ✔ denied operations leave host contents and metadata unchanged (2.966ms)
+  ✔ explicit and default writable mounts still permit ordinary file operations (138.071458ms)
+  ✔ mixed modes reject new hard links without freezing the writable source (99.077959ms)
+✔ real VM enforces read-only mounts while preserving live reads and writable mounts (6945.66025ms)
+(node:41663) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ real VM reaches only its managed proxy and receives proxy environment (7747.354875ms)
+✔ uv client streams real guest HTTPS requests with scoped UUID substitution (9011.934375ms)
+✔ large downloads stream while stalled readers leave v86 buffers bounded (9998.206ms)
+(node:41707) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ startup package fetch failures stop boot before unprivileged execution becomes available (5404.15725ms)
+✔ startup packages install uv and jq via HTTPS proxy before normal commands run as UID 1000 (15513.02275ms)
+ℹ 1000
+uv 0.5.31
+jq-1.7.1
+42
+guest uv executed Python
+bootstrap removed; package files protected
+ℹ 5 package requests traversed the managed HTTPS proxy
+(node:41830) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+▶ real v86 WebSocket streaming and uv Python client
+  ✔ stdout and stderr arrive before blocked reads; successive stdin and EOF preserve exit (116.976208ms)
+  ✔ all byte values and cumulative stdin beyond 32 KiB survive both directions (1273.582208ms)
+  ✔ stdin false gives the process EOF immediately (108.729833ms)
+  ✔ concurrent streaming sessions cannot mix stdout, stderr, or stdin (107.6275ms)
+  ✔ timeout and explicit cancellation kill blocked guest processes (319.430625ms)
+  ✔ disconnect cancels the process and descendants without leaking active commands (163.52325ms)
+  ✔ output limit truncates the stream and leaves the VM usable (114.543375ms)
+  ✔ uv Python client forwards live stdout/stderr, later stdin, EOF, and nonzero status (456.889834ms)
+  ✔ uv Python client preserves arbitrary binary stdin and output (727.539ms)
+  ✔ Python client exits while its parent keeps stdin open (130.162792ms)
+✔ real v86 WebSocket streaming and uv Python client (10093.521375ms)
+(node:41919) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+▶ real v86 HTTP API, live mounts and Claude shell prefix
+  ✔ Linux guest preserves shell syntax, stdout, stderr, and nonzero exit (103.14875ms)
+  ✔ two live mounts and changes from the host are immediately visible (156.897042ms)
+  ✔ mkdir, append, truncate, rename, chmod, unlink and symlinks (457.634292ms)
+  ✔ guest filesystem operations cannot follow a host symlink to an unmounted file (56.541583ms)
+  ✔ stdin, env, and original host path aliases (82.741958ms)
+  ✔ concurrent calls do not mix streams (170.790334ms)
+  ✔ timeout and output limit terminate guest processes, server remains usable (210.540666ms)
+  ✔ HTTP disconnect cancels the running command (64.808209ms)
+  ✔ Claude prefix runs full quoted prologue and writes a host-readable cwd file (242.022709ms)
+✔ real v86 HTTP API, live mounts and Claude shell prefix (7930.266833ms)
+ℹ tests 76
+ℹ suites 0
+ℹ pass 76
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 100673.484791
+
+
+
+> v86-shell-server@0.3.0 test:python
+> uv run --with websockets==17.0.1 python -m unittest discover -s test/python -v
+
+Installed 1 package in 2ms
+test_complete_command_is_not_evaluated_and_deepest_mount_is_selected (test_client.ClientTests.test_complete_command_is_not_evaluated_and_deepest_mount_is_selected) ... ok
+test_devnull_sends_eof (test_client.ClientTests.test_devnull_sends_eof) ... ok
+test_exit_does_not_wait_for_still_open_parent_stdin (test_client.ClientTests.test_exit_does_not_wait_for_still_open_parent_stdin) ... ok
+test_exit_status_conventions (test_client.ClientTests.test_exit_status_conventions) ... ok
+test_http_and_websocket_redirects_are_not_followed (test_client.ClientTests.test_http_and_websocket_redirects_are_not_followed) ... ok
+test_invalid_urls_settings_and_unmapped_cwd_fail_before_execution (test_client.ClientTests.test_invalid_urls_settings_and_unmapped_cwd_fail_before_execution) ... ok
+test_missing_exit_frame_and_api_errors_fail (test_client.ClientTests.test_missing_exit_frame_and_api_errors_fail) ... ok
+test_no_stdin_option_and_ws_origin (test_client.ClientTests.test_no_stdin_option_and_ws_origin) ... ok
+test_output_precedes_stdin_and_multiple_delayed_binary_chunks (test_client.ClientTests.test_output_precedes_stdin_and_multiple_delayed_binary_chunks) ... ok
+test_preserved_cwd_and_explicit_settings (test_client.ClientTests.test_preserved_cwd_and_explicit_settings) ... ok
+test_proxy_environment_is_ignored_for_local_api_and_websocket (test_client.ClientTests.test_proxy_environment_is_ignored_for_local_api_and_websocket) ... ok
+test_regular_file_stdin_is_chunked_and_acknowledged (test_client.ClientTests.test_regular_file_stdin_is_chunked_and_acknowledged) ... ok
+test_requires_exactly_one_command (test_client.ClientTests.test_requires_exactly_one_command) ... ok
+test_server_closed_stdin_stops_input_pump (test_client.ClientTests.test_server_closed_stdin_stops_input_pump) ... ok
+test_sigterm_cancels_and_exits_promptly_while_stdin_remains_open (test_client.ClientTests.test_sigterm_cancels_and_exits_promptly_while_stdin_remains_open) ... ok
+test_sigterm_remains_responsive_when_stdout_consumer_stops_reading (test_client.ClientTests.test_sigterm_remains_responsive_when_stdout_consumer_stops_reading) ... ok
+test_tty_stdin_forwards_a_line_without_waiting_for_eof (test_client.ClientTests.test_tty_stdin_forwards_a_line_without_waiting_for_eof) ... Executing <Task finished name='Task-346' coro=<ClientTests.test_tty_stdin_forwards_a_line_without_waiting_for_eof() done, defined at /Users/simon/Documents/Codex/2026-09-17/find/outputs/v86-shell-server/test/python/test_client.py:198> result=None created at /Users/simon/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/runners.py:109> took 0.600 seconds
+ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 4.479s
+
+OK
+
+
+Packaged npx verification:
+{
+  "archive": "v86-shell-server-0.3.0.tgz",
+  "npx": true,
+  "packages": [
+    "uv",
+    "jq"
+  ],
+  "stdout": "ready\nhello streamed stdin\n1000\nuv 0.5.31\njq-1.7.1\npackaged guest uv ran Python\nread-only fixture\n",
+  "stderr": "/bin/bash: line 11: /mnt/reference/no.txt: Read-only file system\npackaged stderr\n",
+  "exitCode": 7,
+  "copyAsset": true,
+  "stdin": true,
+  "mountModes": true,
+  "proxyActivity": true,
+  "livePolicy": true
+}

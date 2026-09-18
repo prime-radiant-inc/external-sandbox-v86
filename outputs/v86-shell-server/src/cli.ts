@@ -20,6 +20,8 @@ Usage: v86-shell-server [options] [directory ...]
   --image PATH        Guest image directory (default: bundled images/linux).
   --proxy-config FILE Enable managed HTTP(S) egress with host-side policy and
                        credential substitution from a JSON configuration.
+  --packages LIST     Install comma-separated Alpine packages at boot (repeatable).
+                       Requires --proxy-config permitting Alpine's package CDN.
   --verbose           Print guest boot diagnostics on stderr.
   --help              Show this help.
 
@@ -27,23 +29,25 @@ POST http://127.0.0.1:8686/exec
   {"command":"printf hello; printf error >&2; exit 7","cwd":"/mnt/project"}
 
 GET /health and GET /mounts provide readiness and mounted paths.
+Open / for the browser terminal, and /proxy for live managed proxy controls.
 WebSocket /codex implements the Codex 0.154.0 exec-server protocol.
 Mount modes appear in /mounts. Networking is off by default.
 `;
 
 async function main() {
-  const { help, port, memoryMiB, image, mounts, proxyConfig, verbose } = await parseServerOptions(process.argv.slice(2));
+  const { help, port, memoryMiB, image, mounts, proxyConfig, verbose, packages } = await parseServerOptions(process.argv.slice(2));
   if (help) { process.stdout.write(HELP); return; }
   const policy = proxyConfig ? await loadProxyPolicy(proxyConfig) : undefined;
   const proxy = policy ? await startManagedProxy(policy) : undefined;
   let vm: ShellVM;
   try {
     console.error('Booting Linux in v86…');
-    vm = await ShellVM.boot({ image, mounts, memoryMiB,
+    if (packages.length) console.error(`Installing Alpine packages before commands start: ${packages.join(', ')}`);
+    vm = await ShellVM.boot({ image, mounts, memoryMiB, packages,
       managedNetwork: proxy ? { proxyPort: proxy.port, caCertificate: proxy.caCertificate, env: policy!.guestEnv } : undefined,
       onBootLog: verbose ? text => { process.stderr.write(text); } : undefined });
   } catch (error) { await proxy?.close(); throw error; }
-  const server = createApiServer(vm);
+  const server = createApiServer(vm, { proxyManagement: proxy });
   let shuttingDown = false;
   const stop = async () => {
     if (shuttingDown) return;
@@ -61,8 +65,12 @@ async function main() {
     const address = server.address();
     const actualPort = typeof address === 'object' && address ? address.port : port;
     console.error(`Listening on http://127.0.0.1:${actualPort}`);
+    console.error(`Browser terminal: http://127.0.0.1:${actualPort}/`);
     console.error(`Codex exec-server: ws://127.0.0.1:${actualPort}/codex`);
-    if (proxy) console.error('Managed HTTP(S) egress enabled; direct guest connections are blocked.');
+    if (proxy) {
+      console.error(`Proxy controls: http://127.0.0.1:${actualPort}/proxy`);
+      console.error('Managed HTTP(S) egress enabled; direct guest connections are blocked.');
+    }
     for (const mount of mounts) console.error(`  ${mount.hostPath} -> /mnt/${mount.name} (${mount.mode ?? 'rw'})${mount.preservedPaths ? ' (original paths also available)' : ''}`);
   } catch (error) { await stop(); throw error; }
 }

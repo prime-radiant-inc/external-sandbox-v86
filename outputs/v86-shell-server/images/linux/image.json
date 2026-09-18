@@ -21,8 +21,8 @@
     },
     "initrd": {
       "path": "initrd.img",
-      "sha256": "1c841714aab6811aebb70aac5ce98de44a186716a309707c0031df7ea3494704",
-      "size": 25637081
+      "sha256": "839e9f940b00a23d927d57f05556d7926e53b1496158be168d78587c1cc81f95",
+      "size": 25636661
     }
   },
   "build": {
@@ -31,7 +31,7 @@
     "agentSource": "guest/agent/agent.c",
     "agentSourceSha256": "bacee19f548cbbc7b7e52144a81c70eabea0a8691a2a778c6608b2f1bb930739",
     "sourcesLockSha256": "964174a9dcba2d7e9e996f2d7c4592e526af12d2d28dac021ab081f3894d4299",
-    "initSourceSha256": "84b235bd558bfe0f63dda3888d9e80dc8ceaf5c5adbc77eea424c63e4377acf5",
+    "initSourceSha256": "e9fb260f3b4b23b48af7e382ca7e79fc380e6032b9556f3603c5e0ac7bd69f19",
     "hostFilesystem": "virtio-9p/9p2000.L at /mnt",
     "modules": {
       "netfs.ko.gz": "31939bee13fd2d9e8c839877c8746b34071bfa9f9c87409e34040ee42405f2b2",
@@ -42,5 +42,8 @@
       "net_failover.ko.gz": "c97ee76fb87306b46add3a6eb76cdb9b7f01b70ec824b8e5761dddd5f66cfd92",
       "virtio_net.ko.gz": "435fa8e633cda5d8b81e88fab6127b959e551512d5a073eb2ab0668680d2a23e"
     }
+  },
+  "capabilities": {
+    "startupPackages": true
   }
 }

@@ -1,0 +1,8 @@
+{
+  "allow": [
+    {
+      "origin": "https://dl-cdn.alpinelinux.org",
+      "methods": ["GET", "HEAD"]
+    }
+  ]
+}

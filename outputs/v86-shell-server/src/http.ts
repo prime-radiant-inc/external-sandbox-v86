@@ -3,6 +3,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { attachWebSocketApi } from './websocket.js';
 import type { StreamingExecutor } from './streaming.js';
 import { attachCodexExecServer, type CodexExecutor } from './codex/server.js';
+import { createTerminalUi } from './ui/terminal.js';
+import { createProxyManagementUi, type ProxyManagement } from './ui/proxy-management.js';
 
 export interface ExecRequest {
   command: string;
@@ -33,6 +35,7 @@ export interface Executor {
 
 export interface ApiOptions {
   maxBodyBytes?: number;
+  proxyManagement?: ProxyManagement;
 }
 
 const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
@@ -61,7 +64,7 @@ function json(res: ServerResponse, status: number, value: unknown): void {
 }
 
 export function checkBrowserAccess(req: IncomingMessage): void {
-  // An Origin is rejected even if it claims to be localhost: there is no browser UI.
+  // Legacy APIs reject all Origins. UI routes authorize their narrowly scoped exception separately.
   if (req.headers.origin !== undefined) {
     throw new RequestError(403, 'Browser Origin requests are not allowed.');
   }
@@ -175,10 +178,12 @@ export function validateExec(value: unknown): ExecRequest {
   return request;
 }
 
-/** Create an unbound JSON API server. The caller must bind it to a loopback address. */
+/** Create an unbound API and browser UI server. The caller must bind it to loopback. */
 export function createApiServer(executor: Executor, options: ApiOptions = {}): Server {
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   if (!Number.isSafeInteger(maxBodyBytes) || maxBodyBytes < 1) throw new RangeError('maxBodyBytes must be a positive integer.');
+  const terminal = createTerminalUi(() => executor.info(), { proxyEnabled: !!options.proxyManagement });
+  const proxyUi = options.proxyManagement ? createProxyManagementUi(options.proxyManagement) : undefined;
   const server = createServer((req, res) => {
     const controller = new AbortController();
     const onAborted = () => controller.abort();
@@ -188,9 +193,11 @@ export function createApiServer(executor: Executor, options: ApiOptions = {}): S
     req.once('aborted', onAborted);
     res.once('close', onClose);
     void (async () => {
-      checkBrowserAccess(req);
       if (!req.url?.startsWith('/')) throw new RequestError(400, 'An absolute-path request target is required.');
       const path = new URL(req.url, 'http://localhost').pathname;
+      if (terminal.handle(req, res, path)) return;
+      if (proxyUi && await proxyUi(req, res, path)) return;
+      checkBrowserAccess(req);
       const methods: Record<string, string> = { '/health': 'GET', '/mounts': 'GET', '/exec': 'POST' };
       const method = methods[path];
       if (!method) throw new RequestError(404, 'Route not found.');
@@ -238,6 +245,6 @@ export function createApiServer(executor: Executor, options: ApiOptions = {}): S
   });
   const codex = !!executor.startArgv && !!executor.guestFilesystemRequest;
   if (codex) attachCodexExecServer(server, executor as CodexExecutor);
-  if (executor.start) attachWebSocketApi(server, { start: executor.start.bind(executor) }, { codex });
+  if (executor.start) attachWebSocketApi(server, { start: executor.start.bind(executor) }, { codex, terminal });
   return server;
 }

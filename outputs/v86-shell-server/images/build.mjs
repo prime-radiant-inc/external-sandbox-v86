@@ -59,6 +59,7 @@ for (const [key, filename] of Object.entries({ bios:'seabios.bin', vgaBios:'vgab
 }
 const manifest = {
   formatVersion: 1, v86Version: '0.5.458', memoryMiB: 512,
+  capabilities: { startupPackages: true },
   cmdline: 'console=ttyS0,115200 quiet loglevel=3 rdinit=/init panic=-1 acpi=off pci=nomsi',
   assets,
   build: { alpine: '3.21.0', kernel: '6.12.109-r0', agentSource,

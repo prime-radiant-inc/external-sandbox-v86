@@ -11,6 +11,7 @@ import { createHostFilesystem, type Mount } from './host-filesystem.js';
 import type { ExecRequest, ExecResult } from './http.js';
 import { startProxyRelay, GUEST_PROXY_URL, type ProxyRelay } from './network/wisp-relay.js';
 import { installV86NetworkGuard } from './network/v86-network-guard.js';
+import { appendGuestBootstrap, normalizePackages } from './guest-packages.js';
 
 export interface VMMount extends Mount { preservedPaths?: string[] }
 export interface VMOptions {
@@ -19,6 +20,8 @@ export interface VMOptions {
   memoryMiB?: number;
   bootTimeoutMs?: number;
   onBootLog?: (text: string) => void;
+  /** Install these Alpine packages as guest root before exposing the command agent. */
+  packages?: string[];
   /** Host-local managed proxy. Only its public CA and placeholder environment enter the guest. */
   managedNetwork?: { proxyPort: number; caCertificate: string; env?: Record<string, string> };
 }
@@ -47,16 +50,21 @@ export class ShellVM {
   ) {}
 
   static async boot(options: VMOptions): Promise<ShellVM> {
-    options = { ...options, mounts: await Promise.all(options.mounts.map(async mount => ({
+    const packages = normalizePackages(options.packages ?? []);
+    if (packages.length && !options.managedNetwork) throw new Error('Startup packages require managed networking and an Alpine repository proxy rule');
+    options = { ...options, packages, mounts: await Promise.all(options.mounts.map(async mount => ({
       ...mount, hostPath: await realpath(mount.hostPath), mode: mount.mode ?? 'rw',
       ...(mount.preservedPaths ? { preservedPaths: [...mount.preservedPaths] } : {}),
     }))) };
     const directory = path.resolve(options.image);
     const manifest = JSON.parse(await readFile(path.join(directory, 'image.json'), 'utf8'));
     if (manifest.formatVersion !== 1 || manifest.v86Version !== '0.5.458') throw new Error('Expected image format 1 for v86 0.5.458');
+    if (packages.length && manifest.capabilities?.startupPackages !== true) throw new Error('This image does not support startup packages; use the bundled image or rebuild it');
     const memory = options.memoryMiB ?? 512;
     if (!Number.isSafeInteger(memory) || memory < 128 || memory > 2048) throw new Error('Memory must be 128–2048 MiB');
-    const [bios, vga, kernel, initrd] = await Promise.all(['bios', 'vgaBios', 'bzimage', 'initrd'].map(key => asset(directory, manifest.assets[key])));
+    const [bios, vga, kernel, baseInitrd] = await Promise.all(['bios', 'vgaBios', 'bzimage', 'initrd'].map(key => asset(directory, manifest.assets[key])));
+    const bootstrap = options.managedNetwork && manifest.capabilities?.startupPackages === true;
+    const initrd = bootstrap ? appendGuestBootstrap(baseInitrd, { packages, caCertificate: options.managedNetwork!.caCertificate }) : baseInitrd;
     const aliases = options.mounts.filter(m => m.preservedPaths?.length).map(m => ({ name: m.name, paths: m.preservedPaths }));
     const cmdline = manifest.cmdline + (aliases.length ? ` v86_mounts=${Buffer.from(JSON.stringify(aliases)).toString('base64url')}` : '') + (options.managedNetwork ? ' v86_network=proxy' : '');
     if (Buffer.byteLength(cmdline) > 2000) throw new Error('Too many preserved paths for the Linux kernel command line; shorten paths or omit --preserve-paths');
@@ -83,16 +91,20 @@ export class ShellVM {
     guest.setMaxListeners(40);
     emulator.add_listener('serial1-output-byte', (value: number) => guest.feed(Uint8Array.of(value)));
     let log = '';
+    let rejectBoot: ((error: Error) => void) | undefined;
     emulator.add_listener('serial0-output-byte', (value: number) => {
       const char = String.fromCharCode(value);
       log = (log + char).slice(-8000);
       options.onBootLog?.(char);
+      const fatal = /V86_BOOT_FATAL: ([^\r\n]*)[\r\n]/.exec(log);
+      if (fatal) rejectBoot?.(new Error(`${fatal[1]}\n${log}`));
     });
     try {
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => { cleanup(); reject(new Error(`Guest boot timed out.\n${log}`)); }, options.bootTimeoutMs ?? 180_000);
-        const cleanup = () => { clearTimeout(timer); guest.off('event', event); guest.off('failure', fail); };
+        const timer = setTimeout(() => { cleanup(); reject(new Error(`Guest boot timed out.\n${log}`)); }, options.bootTimeoutMs ?? (packages.length ? 300_000 : 180_000));
+        const cleanup = () => { clearTimeout(timer); rejectBoot = undefined; guest.off('event', event); guest.off('failure', fail); };
         const fail = (error: Error) => { cleanup(); reject(error); };
+        rejectBoot = fail;
         const event = (message: GuestEvent) => {
           if (message.event !== 'ready') return;
           cleanup();
@@ -112,7 +124,7 @@ export class ShellVM {
         });
       });
       guest.on('failure', () => { void vm.destroy().catch(() => {}); });
-      if (options.managedNetwork) {
+      if (options.managedNetwork && !bootstrap) {
         const encoded = Buffer.from(options.managedNetwork.caCertificate).toString('base64');
         const setup = await vm.execute({ command: `umask 077; printf '%s' '${encoded}' | base64 -d > /home/agent/.v86-proxy-ca.pem`, cwd: '/home/agent' });
         if (setup.exitCode !== 0) throw new Error('Failed to install managed proxy public CA in guest');
@@ -125,6 +137,7 @@ export class ShellVM {
     return {
       status: this.stopped ? 'stopped' : 'ready', backend: 'v86', architecture: 'i686',
       shell: '/bin/bash', network: this.relay ? 'managed-http' : false,
+      packages: [...(this.options.packages ?? [])],
       mounts: this.options.mounts.map(m => ({ ...m, guestPath: `/mnt/${m.name}` })),
       defaultCwd: this.options.mounts[0] ? `/mnt/${this.options.mounts[0].name}` : '/workspace',
       activeCommands: this.active,
@@ -152,6 +165,7 @@ export class ShellVM {
       HTTP_PROXY: GUEST_PROXY_URL, HTTPS_PROXY: GUEST_PROXY_URL, no_proxy: '', NO_PROXY: '',
       SSL_CERT_FILE: caPath, CURL_CA_BUNDLE: caPath, REQUESTS_CA_BUNDLE: caPath,
       GIT_SSL_CAINFO: caPath, NODE_EXTRA_CA_CERTS: caPath,
+      NODE_USE_ENV_PROXY: '1',
       ...this.options.managedNetwork?.env,
     } : {};
     return { PATH: '/usr/local/bin:/usr/bin:/bin', HOME: '/home/agent', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', USER: 'agent', LOGNAME: 'agent', SHELL: '/bin/bash', ...defaults };

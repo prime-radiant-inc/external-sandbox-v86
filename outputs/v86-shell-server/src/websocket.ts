@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import type { Server } from 'node:http';
+import type { Server, IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { checkBrowserAccess, RequestError, validateExec } from './http.js';
 import type { StreamExecRequest, StreamingExecutor, StreamingProcess } from './streaming.js';
@@ -41,18 +41,25 @@ function stdinBytes(value: unknown): Buffer {
 }
 
 /** Attach the streaming execution endpoint and include upgraded sockets in shutdown. */
-export function attachWebSocketApi(server: Server, executor: StreamingExecutor, options: { codex?: boolean } = {}): void {
-  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false });
+export function attachWebSocketApi(server: Server, executor: StreamingExecutor, options: {
+  codex?: boolean;
+  terminal?: { authorizeWebSocket(request: IncomingMessage): void; protocol: string };
+} = {}): void {
+  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false,
+    // Never echo the token-bearing offered subprotocol in the handshake response.
+    handleProtocols: protocols => options.terminal && protocols.has(options.terminal.protocol) ? options.terminal.protocol : false,
+  });
   const connections = new Map<WebSocket, () => void>();
   let stopping = false;
 
   server.on('upgrade', (request, socket, head) => {
     if (options.codex && request.url?.startsWith('/') && new URL(request.url, 'http://localhost').pathname === '/codex') return;
     try {
-      checkBrowserAccess(request);
       if (stopping) throw new RequestError(503, 'Server is shutting down.');
       if (!request.url?.startsWith('/')) throw new RequestError(400, 'An absolute-path request target is required.');
       if (new URL(request.url, 'http://localhost').pathname !== '/exec/ws') throw new RequestError(404, 'Route not found.');
+      if (request.headers.origin !== undefined && options.terminal) options.terminal.authorizeWebSocket(request);
+      else checkBrowserAccess(request);
       wss.handleUpgrade(request, socket, head, ws => wss.emit('connection', ws, request));
     } catch (error) {
       const status = error instanceof RequestError ? error.statusCode : 400;

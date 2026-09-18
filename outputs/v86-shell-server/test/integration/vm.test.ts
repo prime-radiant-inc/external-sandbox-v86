@@ -92,7 +92,10 @@ test('real v86 HTTP API, live mounts and Claude shell prefix', { timeout: 240_00
     const request = fetch(base + '/exec', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ command: 'printf ready > cancel-start; sleep 30; printf bad > cancel-end' }), signal: controller.signal });
     void request.catch(() => {});
     for (let i = 0; i < 100; i++) {
-      try { await fs.stat(path.join(project, 'cancel-start')); break; } catch { await new Promise(r => setTimeout(r, 20)); }
+      // Opening a redirected file creates it before printf writes its marker.
+      // Wait for the completed marker rather than racing that empty-file window.
+      try { if (await fs.readFile(path.join(project, 'cancel-start'), 'utf8') === 'ready') break; } catch {}
+      await new Promise(r => setTimeout(r, 20));
     }
     assert.equal(await fs.readFile(path.join(project, 'cancel-start'), 'utf8'), 'ready');
     controller.abort(); await assert.rejects(request);

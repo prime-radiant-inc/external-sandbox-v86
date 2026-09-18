@@ -13,8 +13,9 @@ protocol for shell execution and filesystem operations, including `apply_patch`.
 The bundled guest is 32-bit Alpine Linux with Bash, Python 3, Git, and BusyBox.
 Networking is off by default. Optional managed HTTP(S) egress applies host and
 IP rules and substitutes placeholder tokens with host-side API keys.
-Commands run as guest UID/GID 1000. Node runs on the
-host; Node/npm are not installed in this guest image.
+Commands run as guest UID/GID 1000. Node runs on the host; the base guest image
+does not include Node/npm. Use `--packages` to install additional Alpine tools
+when the VM starts.
 
 ## Run
 
@@ -64,6 +65,29 @@ must fit the kernel command line; startup reports an error if it cannot.
 
 Use `node dist/cli.js --help` for `--image`, `--memory`, and `--verbose` options.
 
+## Browser terminal and proxy controls
+
+Open `http://127.0.0.1:8686/` to run commands, watch separate stdout/stderr,
+send stdin or EOF, cancel, browse history, and **Copy session** to the clipboard.
+Each command starts a fresh shell; full-screen TTY programs are unsupported.
+
+With `--proxy-config`, open `/proxy` to edit the live JSON policy and inspect
+sanitized request activity. Applying a valid policy closes existing proxy
+connections; invalid edits leave the old policy intact. Changes are runtime-only.
+See [browser terminal and proxy UI](docs/browser-ui.md).
+
+## Install guest tools at startup
+
+```sh
+node dist/cli.js --proxy-config examples/proxy-alpine.json \
+  --packages uv,jq,ripgrep --mount-rw "project=$PWD"
+```
+
+The VM installs packages from Alpine's HTTPS repositories before serving
+commands, then runs ordinary commands as UID 1000. The supplied policy permits
+only Alpine package downloads. Installed tools are ephemeral and reinstalled
+on the next boot. See [startup packages and uv](docs/packages.md).
+
 ## Codex exec-server
 
 The same Node process exposes `ws://127.0.0.1:8686/codex`. Configure this URL in
@@ -89,7 +113,7 @@ is blocked outside the guest, even when a program ignores proxy settings.
 See [configuration, examples, and security boundaries](docs/proxy.md). This mode
 supports outbound HTTP(S), including streaming responses, with exact origin
 rules, optional methods/paths, and optional CIDR allowlists. It does not enable
-arbitrary TCP/UDP or grant package-install privileges. Omitting `--proxy-config`
+arbitrary TCP/UDP or grant ordinary commands package-install privileges. Omitting `--proxy-config`
 retains the offline behavior.
 
 ## JSON API
