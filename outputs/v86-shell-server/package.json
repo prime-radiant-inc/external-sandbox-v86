@@ -1,10 +1,13 @@
 {
   "name": "v86-shell-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Local shell sandbox with v86 Linux, live directory mounts, streaming execution, and managed HTTP egress",
-  "os": ["darwin", "linux"],
+  "os": [
+    "darwin",
+    "linux"
+  ],
   "engines": {
     "node": ">=22"
   },

@@ -8,6 +8,7 @@ outputs/*.tar.gz
 outputs/*.tgz
 work/npm-cache/
 work/npm-package-smoke/
+work/codex-exec/
 outputs/v86-shell-server/images/cache/
 outputs/v86-shell-server/images/build/
 # Local proxy credentials and generated CA private keys must never be committed.

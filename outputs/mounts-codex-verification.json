@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "archive": "v86-shell-server-0.2.0.tgz",
+  "published": false,
+  "sizeBytes": 33578525,
+  "unpackedBytes": 34381386,
+  "sha256": "7da49d3211e97d50bd7555bf1a546092f5b1f4523cc4e7813741334dd16bae37",
+  "integrity": "sha512-g9KXETIkzewvTxdBmSPl+I78b2mZJUputqqGSIy00PJJZeCQ9b9iRzi+OzLFR4k6AkWVcQyBO/MhkNI4ZbLzrw==",
+  "tests": {
+    "unit": 130,
+    "realVmIntegration": 66,
+    "python": 17,
+    "packagedNpx": "passed",
+    "codexCliVersion": "0.154.0",
+    "modelProvider": "deterministic localhost fixture; no paid inference"
+  }
+}

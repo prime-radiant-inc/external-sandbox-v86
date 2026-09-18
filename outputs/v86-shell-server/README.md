@@ -2,12 +2,13 @@
 
 A Node.js HTTP JSON API that executes Bash commands inside a Linux VM running
 in v86/WebAssembly. Selected host directories are mounted live over 9p: guest
-reads see host files and guest writes change those files immediately. There is
+reads see host files and writes to read-write mounts change them immediately. There is
 no import/export step and no Docker dependency at runtime.
 
 Use `POST /exec` for a buffered JSON response, or WebSocket `/exec/ws` for live
 stdout/stderr and incremental stdin. The Python client and Claude Code wrapper
-use the streaming endpoint.
+use the streaming endpoint. Codex connects to `/codex` using its exec-server
+protocol for shell execution and filesystem operations, including `apply_patch`.
 
 The bundled guest is 32-bit Alpine Linux with Bash, Python 3, Git, and BusyBox.
 Networking is off by default. Optional managed HTTP(S) egress applies host and
@@ -34,8 +35,8 @@ Start with one or more directories:
 
 ```sh
 node dist/cli.js --port 8686 \
-  --mount project=/absolute/path/to/project \
-  --mount data=/absolute/path/to/data
+  --mount-rw project=/absolute/path/to/project \
+  --mount-ro data=/absolute/path/to/data
 ```
 
 These appear as `/mnt/project` and `/mnt/data` inside Linux. An unnamed mount
@@ -44,6 +45,11 @@ uses its directory basename; positional paths also work:
 ```sh
 node dist/cli.js /absolute/path/to/project /absolute/path/to/data
 ```
+
+`--mount-ro` is read-only; `--mount-rw`, `--mount`, and positional directories
+are read-write. Read-only checks happen on the host for every mutation and
+remain effective through preserved paths and symlinks. `/mounts` and `/health`
+include each mount's `mode`. Overlapping host directories cannot mix modes.
 
 The listener binds to **127.0.0.1 only**, after the VM and mounts are ready. Stop
 with Ctrl-C. Mount contents persist; all other guest filesystem changes vanish
@@ -57,6 +63,13 @@ Guest system paths cannot be overwritten, and the total alias configuration
 must fit the kernel command line; startup reports an error if it cannot.
 
 Use `node dist/cli.js --help` for `--image`, `--memory`, and `--verbose` options.
+
+## Codex exec-server
+
+The same Node process exposes `ws://127.0.0.1:8686/codex`. Configure this URL in
+Codex's `environments.toml` and use the VM as its execution environment. No
+Codex binary, Node installation, or extra service is needed inside the guest.
+See [Codex setup, protocol support, and testing](docs/codex.md).
 
 ## Managed HTTP(S) networking
 
@@ -228,6 +241,13 @@ is unchanged: opt in with `V86_FORWARD_STDIN=1`, capped at 32 KiB total.
 
 - Read, write, append, binary files, creation, removal, directories, rename,
   chmod, timestamps, symlinks, hardlinks, and fsync use the host filesystem.
+  Read-only mounts reject mutating operations with `EROFS`; reads remain live.
+  Ordinary filesystem access-time updates caused by reading can still occur.
+- While any read-only mount exists, multiply linked regular host files are
+  treated as read-only even through a writable mount, and new host hardlinks
+  are rejected. This conservative rule prevents an existing hardlink from
+  bypassing read-only protection. All-read-write configurations retain hardlink
+  support. Guest-local files are unaffected.
 - Guest metadata presents files as owned by UID/GID 1000 while retaining host
   permission bits. Host operations use the Node server's account. Changing
   ownership to a different guest UID/GID is unsupported.
@@ -238,8 +258,8 @@ is unchanged: opt in with `V86_FORWARD_STDIN=1`, capped at 32 KiB total.
   unsupported. Software that relies on those features may need guest-local storage.
 - Parent paths are checked before operations, and regular-file opens use
   `O_NOFOLLOW`. Pure Node does not expose `openat2`; a trusted host process must
-  not swap parent directories during filesystem operations. Existing hardlinks
-  retain shared-inode behavior. This is not an adversarial-host sandbox.
+  not swap parent directories during filesystem operations. This is not an
+  adversarial-host sandbox; host applications can still update read-only mounts.
 - The API is intended for trusted local processes. Browser Origin requests and
   non-local Host headers are rejected; there is no remote access mode or token
   authentication. Other local processes can call it.
@@ -250,7 +270,7 @@ is unchanged: opt in with `V86_FORWARD_STDIN=1`, capped at 32 KiB total.
 npm run check
 npm test
 npm run test:python
-npm run test:integration
+node --import tsx --test --test-concurrency=1 test/integration/*.test.ts
 ```
 
 Validated on Node 24 / macOS arm64. The integration suite boots real v86 and
@@ -267,6 +287,12 @@ while its local stdin stays open. Python tests also cover terminal input and
 cancellation when a downstream output pipe stops reading. The suite uses a
 deterministic command shaped like Claude Code's current wrapper; it does not
 make a live Claude model call.
+
+Codex integration additionally runs the real installed Codex CLI 0.154.0 against
+the real VM with deterministic localhost model responses. It verifies shell
+execution and native `apply_patch` on both mount modes without a paid model call.
+This compatibility test skips if Codex is missing and requires exactly 0.154.0
+when present; set `CODEX_CLI_BIN` to select that binary.
 
 Implementation uses v86's public
 [`filesystem.handle9p` interface](https://github.com/copy/v86/blob/master/docs/filesystem.md).

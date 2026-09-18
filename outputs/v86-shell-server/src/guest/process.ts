@@ -1,5 +1,5 @@
 import { GuestError, type GuestClient, type GuestEvent } from './client.js';
-import type { OutputHandler, StreamExecRequest, StreamingProcess, StreamExit } from '../streaming.js';
+import type { ArgvExecRequest, OutputHandler, StreamExecRequest, StreamingProcess, StreamExit } from '../streaming.js';
 import { LIMITS } from '../limits.js';
 
 export interface ProcessOptions {
@@ -11,7 +11,7 @@ export interface ProcessOptions {
 
 export async function startGuestProcess(
   guest: Pick<GuestClient, 'request' | 'on' | 'off'>,
-  request: StreamExecRequest,
+  request: StreamExecRequest | ArgvExecRequest,
   options: ProcessOptions,
   signal?: AbortSignal,
 ): Promise<StreamingProcess> {
@@ -103,7 +103,10 @@ export async function startGuestProcess(
         timedOut, outputLimitExceeded, durationMs: Math.round(performance.now() - started) });
     }
   }
-  const timeout = setTimeout(() => { timedOut = true; cancel(); }, request.timeoutMs ?? 30_000);
+  // Internal exec-server sessions can live until explicit exit or cancellation.
+  // The public HTTP request validator does not accept zero.
+  const timeout = request.timeoutMs === 0 ? undefined
+    : setTimeout(() => { timedOut = true; cancel(); }, request.timeoutMs ?? 30_000);
   guest.on('event', event); guest.on('failure', failure);
   signal?.addEventListener('abort', cancel, { once: true });
   const closedError = () => new GuestError('EPIPE', 'Process stdin is closed or EOF was requested');
@@ -114,7 +117,12 @@ export async function startGuestProcess(
   };
   try {
     const start = guest.request<{ processId: string }>('process.start', {
-      argv: ['/bin/bash', '-c', request.command], cwd: request.cwd ?? options.defaultCwd,
+      ...('argv' in request ? {
+        argv: request.argv,
+        ...(request.arg0 !== undefined ? { arg0: request.arg0 } : {}),
+        ...(request.envReplace !== undefined ? { envReplace: request.envReplace } : {}),
+      } : { argv: ['/bin/bash', '-c', request.command] }),
+      cwd: request.cwd ?? options.defaultCwd,
       env: request.env ?? {}, stdin: request.stdin !== false,
     });
     const result = await Promise.race([start, completion.then(() => { throw new Error('Process stopped before start was acknowledged'); })]);
@@ -131,6 +139,10 @@ export async function startGuestProcess(
     if (cancelling || signal?.aborted) cancel();
     return {
       processId, completion, cancel,
+      async signal(signalNumber) {
+        if (done) return;
+        await guest.request('process.signal', { processId, signal: signalNumber });
+      },
       writeStdin(data) {
         if (done || cancelling || inputClosed || eofRequested) return Promise.reject(closedError());
         if (data.byteLength > 32 * 1024) return Promise.reject(new GuestError('E2BIG', 'stdin chunks must not exceed 32 KiB'));

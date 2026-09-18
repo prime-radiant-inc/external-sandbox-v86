@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import type { ArgvExecRequest } from './streaming.js';
+import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -46,6 +47,10 @@ export class ShellVM {
   ) {}
 
   static async boot(options: VMOptions): Promise<ShellVM> {
+    options = { ...options, mounts: await Promise.all(options.mounts.map(async mount => ({
+      ...mount, hostPath: await realpath(mount.hostPath), mode: mount.mode ?? 'rw',
+      ...(mount.preservedPaths ? { preservedPaths: [...mount.preservedPaths] } : {}),
+    }))) };
     const directory = path.resolve(options.image);
     const manifest = JSON.parse(await readFile(path.join(directory, 'image.json'), 'utf8'));
     if (manifest.formatVersion !== 1 || manifest.v86Version !== '0.5.458') throw new Error('Expected image format 1 for v86 0.5.458');
@@ -127,19 +132,38 @@ export class ShellVM {
   }
 
   async start(request: StreamExecRequest, onOutput: OutputHandler, signal?: AbortSignal): Promise<StreamingProcess> {
+    return this.startProcess(request, onOutput, signal);
+  }
+
+  async startArgv(request: ArgvExecRequest, onOutput: OutputHandler, signal?: AbortSignal): Promise<StreamingProcess> {
+    return this.startProcess(request, onOutput, signal);
+  }
+
+  guestFilesystemRequest(method: string, params: Record<string, unknown>): Promise<unknown> {
+    if (this.stopped) return Promise.reject(new Error('VM is stopped'));
+    if (!method.startsWith('fs.')) return Promise.reject(new Error('Only guest filesystem methods are allowed'));
+    return this.guest.request(method, params);
+  }
+
+  guestEnvironment(): Record<string, string> {
+    const caPath = '/home/agent/.v86-proxy-ca.pem';
+    const defaults = this.relay ? {
+      http_proxy: GUEST_PROXY_URL, https_proxy: GUEST_PROXY_URL,
+      HTTP_PROXY: GUEST_PROXY_URL, HTTPS_PROXY: GUEST_PROXY_URL, no_proxy: '', NO_PROXY: '',
+      SSL_CERT_FILE: caPath, CURL_CA_BUNDLE: caPath, REQUESTS_CA_BUNDLE: caPath,
+      GIT_SSL_CAINFO: caPath, NODE_EXTRA_CA_CERTS: caPath,
+      ...this.options.managedNetwork?.env,
+    } : {};
+    return { PATH: '/usr/local/bin:/usr/bin:/bin', HOME: '/home/agent', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', USER: 'agent', LOGNAME: 'agent', SHELL: '/bin/bash', ...defaults };
+  }
+
+  private async startProcess(request: StreamExecRequest | ArgvExecRequest, onOutput: OutputHandler, signal?: AbortSignal): Promise<StreamingProcess> {
     if (this.stopped) throw new Error('VM is stopped');
     if (this.active >= 16) throw Object.assign(new Error('At most 16 commands may run concurrently'), { statusCode: 429 });
     if (signal?.aborted) throw new Error('Request cancelled');
     this.active++;
     try {
-      const caPath = '/home/agent/.v86-proxy-ca.pem';
-      const defaults = this.relay ? {
-        http_proxy: GUEST_PROXY_URL, https_proxy: GUEST_PROXY_URL,
-        HTTP_PROXY: GUEST_PROXY_URL, HTTPS_PROXY: GUEST_PROXY_URL, no_proxy: '', NO_PROXY: '',
-        SSL_CERT_FILE: caPath, CURL_CA_BUNDLE: caPath, REQUESTS_CA_BUNDLE: caPath,
-        GIT_SSL_CAINFO: caPath, NODE_EXTRA_CA_CERTS: caPath,
-        ...this.options.managedNetwork?.env,
-      } : {};
+      const defaults = 'envReplace' in request && request.envReplace ? {} : this.guestEnvironment();
       const process = await startGuestProcess(this.guest, { ...request, env: { ...defaults, ...request.env } }, {
         defaultCwd: this.info().defaultCwd, onOutput,
         onUnresponsive: () => this.destroy(),

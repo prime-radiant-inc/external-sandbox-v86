@@ -18,8 +18,8 @@ POSIX behavior.
 From the directory containing the downloaded package:
 
 ```sh
-npx --yes --package ./v86-shell-server-0.1.0.tgz v86-shell-server --help
-npx --yes --package ./v86-shell-server-0.1.0.tgz v86-shell-server --mount "project=$PWD"
+npx --yes --package ./v86-shell-server-0.2.0.tgz v86-shell-server --help
+npx --yes --package ./v86-shell-server-0.2.0.tgz v86-shell-server --mount "project=$PWD"
 ```
 
 The second command stays in the foreground and serves the API on
@@ -40,14 +40,14 @@ VM assets are resolved from the installed package.
 For a command available on your PATH:
 
 ```sh
-npm install --global ./v86-shell-server-0.1.0.tgz
+npm install --global ./v86-shell-server-0.2.0.tgz
 v86-shell-server --mount "project=$PWD"
 ```
 
 Or install into an existing project:
 
 ```sh
-npm install --save-dev /absolute/path/to/v86-shell-server-0.1.0.tgz
+npm install --save-dev /absolute/path/to/v86-shell-server-0.2.0.tgz
 npx --no-install v86-shell-server --mount "project=$PWD"
 ```
 
@@ -64,7 +64,7 @@ Python client correctly through npm's executable links. Install
 With the server running and the working directory mounted:
 
 ```sh
-npx --yes --package ./v86-shell-server-0.1.0.tgz v86-exec 'printf "hello from Linux\\n"'
+npx --yes --package ./v86-shell-server-0.2.0.tgz v86-exec 'printf "hello from Linux\\n"'
 # After a global install:
 v86-exec 'printf "stdout\\n"; printf "stderr\\n" >&2; exit 7'
 ```
@@ -99,8 +99,8 @@ Once a registry name/version has been chosen and published, usage could become:
 
 ```sh
 # Illustrative only: this version has not been published.
-npx v86-shell-server@0.1.0 --mount "project=$PWD"
-npm install --global v86-shell-server@0.1.0
+npx v86-shell-server@0.2.0 --mount "project=$PWD"
+npm install --global v86-shell-server@0.2.0
 ```
 
 The current name has not been reserved or checked for registry availability.

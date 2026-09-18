@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { attachWebSocketApi } from './websocket.js';
 import type { StreamingExecutor } from './streaming.js';
+import { attachCodexExecServer, type CodexExecutor } from './codex/server.js';
 
 export interface ExecRequest {
   command: string;
@@ -26,6 +27,8 @@ export interface Executor {
   execute(request: ExecRequest, signal?: AbortSignal): Promise<ExecResult>;
   info(): object;
   start?: StreamingExecutor['start'];
+  startArgv?: CodexExecutor['startArgv'];
+  guestFilesystemRequest?: CodexExecutor['guestFilesystemRequest'];
 }
 
 export interface ApiOptions {
@@ -233,6 +236,8 @@ export function createApiServer(executor: Executor, options: ApiOptions = {}): S
       if (!req.complete && !req.destroyed) req.resume();
     });
   });
-  if (executor.start) attachWebSocketApi(server, { start: executor.start.bind(executor) });
+  const codex = !!executor.startArgv && !!executor.guestFilesystemRequest;
+  if (codex) attachCodexExecServer(server, executor as CodexExecutor);
+  if (executor.start) attachWebSocketApi(server, { start: executor.start.bind(executor) }, { codex });
   return server;
 }

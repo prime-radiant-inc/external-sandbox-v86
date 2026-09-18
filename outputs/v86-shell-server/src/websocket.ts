@@ -41,12 +41,13 @@ function stdinBytes(value: unknown): Buffer {
 }
 
 /** Attach the streaming execution endpoint and include upgraded sockets in shutdown. */
-export function attachWebSocketApi(server: Server, executor: StreamingExecutor): void {
+export function attachWebSocketApi(server: Server, executor: StreamingExecutor, options: { codex?: boolean } = {}): void {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false });
   const connections = new Map<WebSocket, () => void>();
   let stopping = false;
 
   server.on('upgrade', (request, socket, head) => {
+    if (options.codex && request.url?.startsWith('/') && new URL(request.url, 'http://localhost').pathname === '/codex') return;
     try {
       checkBrowserAccess(request);
       if (stopping) throw new RequestError(503, 'Server is shutting down.');

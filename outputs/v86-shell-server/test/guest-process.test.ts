@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { GuestError } from '../src/guest/client.js';
 import { startGuestProcess } from '../src/guest/process.js';
+import type { ArgvExecRequest } from '../src/streaming.js';
 
 class Guest extends EventEmitter {
   calls: { method: string; params: Record<string, unknown> }[] = [];
@@ -17,6 +18,85 @@ class Guest extends EventEmitter {
 }
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const opts = (onOutput = (_stream: 'stdout' | 'stderr', _data: Uint8Array) => {}) => ({ defaultCwd: '/workspace', onOutput, onUnresponsive() {} });
+
+test('direct execution preserves exact argv, arg0 and replacement environment without a shell', async t => {
+  const guest = new Guest();
+  const request: ArgvExecRequest = {
+    argv: ['/usr/bin/tool', 'a b', '', '$(touch /tmp/unwanted)', '"quoted"', 'line\nbreak'],
+    arg0: 'custom name', envReplace: true, env: { ONLY: 'literal $HOME' }, cwd: '/mnt/project', stdin: false,
+  };
+  const process = await startGuestProcess(guest, request, opts());
+  t.after(() => guest.exit());
+  assert.deepEqual(guest.calls[0], { method: 'process.start', params: {
+    argv: request.argv, arg0: 'custom name', envReplace: true,
+    env: { ONLY: 'literal $HOME' }, cwd: '/mnt/project', stdin: false,
+  } });
+  guest.exit(23);
+  assert.equal((await process.completion).exitCode, 23);
+});
+
+test('direct argv defaults and existing shell requests retain their distinct protocol forms', async t => {
+  for (const request of [
+    { argv: ['/bin/echo', 'literal'], envReplace: false, arg0: '' },
+    { command: 'printf "%s" "$HOME"' },
+  ]) {
+    const guest = new Guest();
+    const process = await startGuestProcess(guest, request, opts());
+    t.after(() => guest.exit());
+    assert.deepEqual(guest.calls[0].params, {
+      ...('argv' in request ? { argv: request.argv, envReplace: false, arg0: '' } : { argv: ['/bin/bash', '-c', request.command] }),
+      env: {}, cwd: '/workspace', stdin: true,
+    });
+    guest.exit(); await process.completion;
+  }
+});
+
+test('INT and TERM signals preserve live stdin and output and become no-ops after exit', async t => {
+  const guest = new Guest(); const chunks: string[] = [];
+  const process = await startGuestProcess(guest, { argv: ['/bin/cat'] }, opts((_stream, data) => chunks.push(Buffer.from(data).toString())));
+  t.after(() => guest.exit());
+  assert.equal(typeof process.signal, 'function');
+  await process.signal!(2);
+  await process.signal!(15);
+  await process.writeStdin(Buffer.from('still open'));
+  guest.output('stdout', Buffer.from('still running'));
+  assert.deepEqual(chunks, ['still running']);
+  assert.deepEqual(guest.calls.filter(call => call.method === 'process.signal').map(call => call.params), [
+    { processId: 'p1', signal: 2 }, { processId: 'p1', signal: 15 },
+  ]);
+  guest.exit(null, 15);
+  const result = await process.completion;
+  assert.equal(result.signal, 15); assert.equal(result.timedOut, false);
+  const before = guest.calls.length;
+  await process.signal!(2);
+  assert.equal(guest.calls.length, before);
+});
+
+test('an explicit signal failure is returned without cancelling a still-live process', async t => {
+  const guest = new Guest();
+  guest.handler = method => {
+    if (method === 'process.start') return { processId: 'p1' };
+    if (method === 'process.signal') throw new GuestError('EPERM', 'signal denied');
+    return {};
+  };
+  const process = await startGuestProcess(guest, { argv: ['/bin/cat'] }, opts());
+  t.after(() => guest.exit());
+  assert.equal(typeof process.signal, 'function');
+  await assert.rejects(process.signal!(2), { code: 'EPERM' });
+  await process.writeStdin(Buffer.from('still writable'));
+  assert.equal(guest.calls.filter(call => call.method === 'process.signal').length, 1);
+  guest.exit(); assert.equal((await process.completion).exitCode, 0);
+});
+
+test('internal timeout zero permits a long-lived command without immediate cancellation', async t => {
+  const guest = new Guest();
+  const process = await startGuestProcess(guest, { argv: ['/bin/cat'], timeoutMs: 0 }, opts());
+  t.after(() => guest.exit());
+  await delay(20);
+  assert.equal(guest.calls.some(call => call.method === 'process.signal'), false);
+  await process.writeStdin(Buffer.from('after timer turn'));
+  guest.exit(); assert.equal((await process.completion).timedOut, false);
+});
 
 test('guest process emits binary stdout/stderr before exit, including startup output', async () => {
   const guest = new Guest(); const chunks: [string, Buffer][] = [];
