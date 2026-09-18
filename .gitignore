@@ -1,0 +1,15 @@
+**/node_modules/
+**/dist/
+**/__pycache__/
+**/.venv/
+**/.DS_Store
+*.pyc
+outputs/*.tar.gz
+outputs/v86-shell-server/images/cache/
+outputs/v86-shell-server/images/build/
+# Local proxy credentials and generated CA private keys must never be committed.
+.env
+.env.*
+!.env.example
+.v86-proxy/
+*.local.json

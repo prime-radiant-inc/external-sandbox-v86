@@ -1,0 +1,43 @@
+{
+  "formatVersion": 1,
+  "v86Version": "0.5.458",
+  "memoryMiB": 512,
+  "cmdline": "console=ttyS0,115200 quiet loglevel=3 rdinit=/init panic=-1 acpi=off pci=nomsi",
+  "assets": {
+    "bios": {
+      "path": "seabios.bin",
+      "sha256": "73e3f359102e3a9982c35fce98eb7cd08f18303ac7f1ba6ebfbe6cdc1c244d98",
+      "size": 131072
+    },
+    "vgaBios": {
+      "path": "vgabios.bin",
+      "sha256": "a4bc0d80cc3ca028c73dafa8fee396b8d054ce87ebd8abfbd31b06b437607880",
+      "size": 36352
+    },
+    "bzimage": {
+      "path": "bzimage",
+      "sha256": "fbf5a5deae3df899aa6cae6e4b6683f4c5d474d8dc2f4ed73d873acc52f7fcd1",
+      "size": 7680512
+    },
+    "initrd": {
+      "path": "initrd.img",
+      "sha256": "42659b1dc761285f39329c72d7474ebbb1c84f055c24dd37d22710b3bd827d3e",
+      "size": 26138507
+    }
+  },
+  "build": {
+    "alpine": "3.21.0",
+    "kernel": "6.12.109-r0",
+    "agentSource": "guest/agent/agent.c",
+    "agentSourceSha256": "bacee19f548cbbc7b7e52144a81c70eabea0a8691a2a778c6608b2f1bb930739",
+    "sourcesLockSha256": "964174a9dcba2d7e9e996f2d7c4592e526af12d2d28dac021ab081f3894d4299",
+    "initSourceSha256": "688c9c30513d0ab388bfb8a4411f85d6d4817e7b521ab2349a9c59f9bacea30b",
+    "hostFilesystem": "virtio-9p/9p2000.L at /mnt",
+    "modules": {
+      "netfs.ko.gz": "31939bee13fd2d9e8c839877c8746b34071bfa9f9c87409e34040ee42405f2b2",
+      "9pnet.ko.gz": "dbd617f458b94b091dfa187d05a73d2c8d14f4bec0ea2820449b53ecc9384578",
+      "9pnet_virtio.ko.gz": "137df8b57d686b9712e5edcd13d58fb8e87ff815bdabf78340d0f5241a9dca6a",
+      "9p.ko.gz": "5e89d1afe82f4165700fd586973d40cd2c5f24dafacf154de70e0fa3e7d8faee"
+    }
+  }
+}

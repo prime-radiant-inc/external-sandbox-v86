@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+# Diagnostics belong on ttyS0; the framed command protocol uses ttyS1.
+exec >/dev/ttyS0 2>&1
+trap 'echo "v86-shell guest init failed"; exit 1' EXIT
+mkdir -p /dev/pts /run /tmp /workspace /home/agent /mnt
+mount -t devpts devpts /dev/pts
+mount -t tmpfs -o mode=1777,size=64m tmpfs /tmp
+mount -t tmpfs -o mode=0755,size=256m tmpfs /workspace
+chown 1000:1000 /workspace /home/agent
+chmod 0700 /home/agent
+chmod 0600 /dev/ttyS1
+for module in netfs 9pnet 9pnet_virtio 9p; do
+    insmod "/usr/local/lib/v86-modules/$module.ko"
+done
+if ! mount -t 9p -o trans=virtio,version=9p2000.L,cache=none,access=client host9p /mnt; then
+    echo "v86-shell: failed to mount host9p at /mnt"
+    exit 1
+fi
+# Optional aliases let tools which embed host cwd paths address the same mounted
+# directory inside the guest. The host server validates this explicit option.
+python3 - <<'PY'
+import base64
+import json
+import os
+import subprocess
+
+for argument in open('/proc/cmdline').read().split():
+    if not argument.startswith('v86_mounts='):
+        continue
+    encoded = argument.split('=', 1)[1]
+    for mapping in json.loads(base64.urlsafe_b64decode(encoded + '=' * (-len(encoded) % 4))):
+        source = '/mnt/' + mapping['name']
+        for target in mapping['paths']:
+            os.makedirs(target, exist_ok=True)
+            subprocess.run(['mount', '--bind', source, target], check=True)
+PY
+echo "v86-shell guest ready: $(uname -r); host directories mounted at /mnt"
+trap - EXIT
+exec /usr/local/sbin/v86-agent --device /dev/ttyS1
