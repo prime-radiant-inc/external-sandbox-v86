@@ -24,8 +24,53 @@ From a source checkout, substitute `node dist/cli.js` after `npm run build`.
 `--preserve-paths` makes the host project path valid as Codex's working directory
 inside the VM. Its permissions match the corresponding `/mnt/NAME` path.
 
-Configure `~/.codex/environments.toml` as follows, merging with any existing
-environment configuration:
+## Register a named environment without changing the default
+
+Codex CLI **0.154.0** reads `$CODEX_HOME/environments.toml`, normally
+`~/.codex/environments.toml`. The filename and format are **TOML**;
+`environments.yaml` is not supported by this version.
+
+To register `v86` alongside the normal local environment, merge this into
+`~/.codex/environments.toml`:
+
+```toml
+default = "local"
+include_local = true
+
+[[environments]]
+id = "v86"
+url = "ws://127.0.0.1:8686/codex"
+connect_timeout_sec = 5
+initialize_timeout_sec = 10
+```
+
+If you already have a different default, keep that `default` value and its
+environment entry. Add the `v86` entry only once. Top-level `default` and
+`include_local` belong before any `[[environments]]` tables.
+
+`v86` is now named but is not the default. However, **the default is not an
+exclusive selection**: this Codex version also makes the other registered
+environments available. A prompt asking to use `v86` does not remove access to
+the local executor. For strictly opt-in VM use, register `v86` only in the
+separate Codex home below instead of adding it to your normal configuration.
+
+## Launch Codex explicitly in v86
+
+The tested CLI has no `codex --environment v86` or `codex exec --environment v86`
+option. `--profile` layers `config.toml` settings; it does not select a named
+entry from `environments.toml`. Likewise, `-c 'default="v86"'` does not override
+this separate file. `CODEX_EXEC_SERVER_URL` is ignored when an
+`environments.toml` file is present.
+
+Use a dedicated Codex home as the per-invocation selector. Create its directory:
+
+```sh
+mkdir -p "$HOME/.codex-v86"
+```
+
+Create `$HOME/.codex-v86/environments.toml` with the following contents. This is
+an independent configuration; it does not alter `~/.codex/environments.toml`.
+The named environment becomes the default **only in this alternate Codex home**:
 
 ```toml
 default = "v86"
@@ -38,21 +83,45 @@ connect_timeout_sec = 5
 initialize_timeout_sec = 10
 ```
 
-`include_local = false` removes the host-local execution environment from this
-configuration. Then start Codex:
+`include_local = false` leaves only the VM executor available in this
+configuration. The alternate home also has separate settings, authentication,
+and session history. Authenticate it once using your usual login method:
 
 ```sh
-codex --sandbox danger-full-access \
+CODEX_HOME="$HOME/.codex-v86" codex login
+```
+
+Add any desired model/provider settings to its `config.toml`. With the v86
+server running, start an interactive Codex session:
+
+```sh
+CODEX_HOME="$HOME/.codex-v86" codex --sandbox danger-full-access \
   -c features.shell_snapshot=false \
   -c features.unified_exec_tty=false \
   --cd /absolute/path/to/project
 ```
 
+For a non-interactive run:
+
+```sh
+CODEX_HOME="$HOME/.codex-v86" codex exec --sandbox danger-full-access \
+  -c features.shell_snapshot=false \
+  -c features.unified_exec_tty=false \
+  --cd /absolute/path/to/project \
+  'Run uname -m, then inspect this project.'
+```
+
+`uname -m` should report `i686` from this guest image. This `CODEX_HOME`
+assignment applies only to that command; an ordinary `codex` invocation keeps
+using your usual Codex home and its configured default. If you already export
+`CODEX_HOME` in your shell, that exported directory remains your usual home.
+
 Here `danger-full-access` selects unrestricted execution **inside the VM**.
 The v86 mount modes and proxy policy still constrain host files and network
 access. This adapter rejects additional Codex platform sandbox requirements
-instead of claiming to enforce policies it cannot implement. Keep the remote
-environment configuration above when using that command.
+instead of claiming to enforce policies it cannot implement. Keep the alternate
+`CODEX_HOME` assignment when using these commands so the VM-only configuration
+is loaded.
 
 Codex itself, its authentication, model requests, and host extensions continue
 running on the host. This integration routes its executor's process and
@@ -121,7 +190,11 @@ The protocol is experimental and pinned to the tested Codex version. Its exact
 source contracts are
 [protocol.rs](https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/exec-server-protocol/src/protocol.rs),
 [environments.toml parsing](https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/exec-server/src/environment_toml.rs),
+[default environment selection](https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/exec-server/src/environment.rs),
 and [filesystem schemas](https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/file-system/src/lib.rs).
+The CLI flags were checked against installed `codex --help` and
+`codex exec --help` for 0.154.0; also see the
+[official CLI reference](https://developers.openai.com/codex/cli/reference/).
 
 ## Verification
 
@@ -144,3 +217,5 @@ then succeeds on the writable mount and fails on the read-only mount. The model
 responses are simulated; Codex, the exec-server transport, and the VM are real.
 No API key or paid inference is involved. Install Codex 0.154.0, or set
 `CODEX_CLI_BIN` to its executable; the test skips when no binary is available.
+The isolated `CODEX_HOME` in this test uses the same VM-only environment
+configuration as the opt-in launch above; it does not change the user's default.
