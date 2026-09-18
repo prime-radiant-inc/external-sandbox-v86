@@ -3,7 +3,7 @@ import { constants } from 'node:fs';
 import path from 'node:path';
 import type { FileHandle } from 'node:fs/promises';
 
-export interface Mount { name: string; hostPath: string; }
+export interface Mount { name: string; hostPath: string; mode?: 'ro' | 'rw'; }
 interface Location { mount?: Mount; parts: string[]; }
 interface Fid extends Location { file?: FileHandle; flags?: number; }
 interface Metadata {
@@ -74,8 +74,13 @@ const rootMetadata: Metadata = {
  * resolves their targets within its own namespace. Parent components are checked
  * before every operation; ordinary file opens additionally use O_NOFOLLOW.
  * Pure Node does not expose openat/openat2: a trusted host process must not swap
- * parent directories concurrently with these checks. Existing host hardlinks
- * retain their normal shared-inode semantics. This is not an adversarial-host
+ * parent directories concurrently with these checks. When any read-only mount
+ * exists, mutations of multiply linked regular files are conservatively denied,
+ * preventing a writable alias from modifying an inode in a read-only mount.
+ * Guest hardlink creation is also denied in this mode, so it cannot create a
+ * multiply linked file that would immediately become immutable.
+ * Without read-only mounts, host hardlinks retain their normal shared-inode
+ * semantics. This is not an adversarial-host
  * filesystem sandbox. Guest 9P mutations are serialized to avoid such races.
  */
 export async function createHostFilesystem(input: Mount[]): Promise<{
@@ -83,13 +88,29 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
   close(): Promise<void>;
 }> {
   const mounts = new Map<string, Mount>();
+  const roots: Array<{ inode: string; ancestors: Set<string>; mode: 'ro' | 'rw' }> = [];
   for (const item of input) {
     const name = component(item.name);
     if (mounts.has(name)) throw new Error(`Duplicate mount name: ${name}`);
+    const mode = item.mode ?? 'rw';
+    if (mode !== 'ro' && mode !== 'rw') throw new Error('Mount mode must be ro or rw');
     const hostPath = await fs.realpath(item.hostPath);
-    if (!(await fs.stat(hostPath)).isDirectory()) throw new Error(`Mount is not a directory: ${item.hostPath}`);
-    mounts.set(name, { name, hostPath });
+    const stat = await fs.stat(hostPath);
+    if (!stat.isDirectory()) throw new Error(`Mount is not a directory: ${item.hostPath}`);
+    const inode = `${stat.dev}:${stat.ino}`, ancestors = new Set<string>([inode]);
+    // Inode identities also recognize aliases differing only in spelling/case
+    // on case-insensitive host filesystems; string prefix checks alone do not.
+    for (let current = path.dirname(hostPath); ; current = path.dirname(current)) {
+      const parent = await fs.stat(current); ancestors.add(`${parent.dev}:${parent.ino}`);
+      if (path.dirname(current) === current) break;
+    }
+    if (roots.some(root => root.mode !== mode && (ancestors.has(root.inode) || root.ancestors.has(inode)))) {
+      throw new Error('Read-only and read-write mount paths must not overlap');
+    }
+    roots.push({ inode, ancestors, mode });
+    mounts.set(name, { name, hostPath, mode });
   }
+  const hasReadOnlyMount = [...mounts.values()].some(mount => mount.mode === 'ro');
   const fids = new Map<number, Fid>();
   const qids = new Map<string, bigint>();
   let nextQid = 1n, msize = 65536, closed = false;
@@ -137,9 +158,19 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
     await metadata(result); return result;
   }
   async function newChild(loc: Location, name: string): Promise<Location> {
-    if (!loc.mount) fail('EROFS');
+    await requireWritable(loc);
     if (!(await metadata(loc)).isDirectory()) fail('ENOTDIR');
     return { mount: loc.mount, parts: [...loc.parts, component(name)] };
+  }
+  async function requireWritable(loc: Location | Fid, allowMissing = false): Promise<void> {
+    if (!loc.mount || loc.mount.mode === 'ro') fail('EROFS');
+    if (!hasReadOnlyMount) return;
+    try {
+      const st = await metadata(loc);
+      if (st.isFile() && st.nlink > 1) fail('EROFS');
+    } catch (error) {
+      if (!allowMissing || (error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
   }
   function requireMutable(loc: Location): void { if (!loc.mount || !loc.parts.length) fail('EBUSY'); }
   async function clearFid(id: number): Promise<void> {
@@ -161,6 +192,7 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
   }
   async function openFile(f: Fid, flags: number, mode = 0o666, creating = false): Promise<void> {
     if (f.file) fail('EBUSY');
+    if (creating || (flags & (3 | 0x40 | 0x200 | 0x400))) await requireWritable(f, creating);
     if (creating) {
       // Creating an existing regular file is allowed; special files must never
       // block the server or provide access to devices/socket endpoints.
@@ -181,6 +213,7 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
     f.flags = flags;
   }
   async function rename(from: Location, to: Location): Promise<void> {
+    await requireWritable(from); await requireWritable(to, true);
     requireMutable(from); requireMutable(to);
     if (from.mount !== to.mount) fail('EXDEV');
     const source = await host(from), destination = await host(to, true);
@@ -245,6 +278,7 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
         }
         case 118: {
           const f = fid(r.u32()), offset = integer(r.u64()), count = r.u32(), data = r.raw(count);
+          await requireWritable(f);
           if (!f.file) fail('EBADF');
           const { bytesWritten } = await f.file.write(data, 0, data.length, (f.flags! & 0x400) ? null : offset);
           w.u32(bytesWritten); break;
@@ -274,7 +308,7 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
           const f = fid(r.u32()), valid = r.u32(), mode = r.u32(), uid = r.u32(), gid = r.u32();
           const size = integer(r.u64()), atime = Number(r.u64()) + Number(r.u64()) / 1e9,
             mtime = Number(r.u64()) + Number(r.u64()) / 1e9;
-          if (!f.mount) fail('EROFS');
+          await requireWritable(f);
           if ((valid & 2 && uid !== 1000) || (valid & 4 && gid !== 1000)) fail('EPERM');
           // Open the inode without following symlinks, then mutate via its fd.
           const p = await host(f), st = await metadata(f);
@@ -319,7 +353,9 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
         }
         case 22: { const f = fid(r.u32()); if (!f.mount) fail('EINVAL'); w.string(await fs.readlink(await host(f))); break; }
         case 70: {
+          if (hasReadOnlyMount) fail('EROFS');
           const dir = fid(r.u32()), old = fid(r.u32()), loc = await newChild(dir, r.string());
+          await requireWritable(old);
           if (old.mount !== loc.mount) fail('EXDEV');
           if (!(await metadata(old)).isFile()) fail('EPERM');
           await fs.link(await host(old), await host(loc, true)); break;
@@ -331,12 +367,12 @@ export async function createHostFilesystem(input: Mount[]): Promise<{
         }
         case 76: {
           const dir = fid(r.u32()), name = r.string(), flags = r.u32(), loc = await child(dir, name);
-          if (flags & ~0x200) fail('EINVAL'); requireMutable(loc);
+          if (flags & ~0x200) fail('EINVAL'); await requireWritable(loc); requireMutable(loc);
           const p = await host(loc);
           if (flags & 0x200) await fs.rmdir(p); else await fs.unlink(p); break;
         }
         case 122: {
-          const id = r.u32(), f = fid(id); requireMutable(f);
+          const id = r.u32(), f = fid(id); await requireWritable(f); requireMutable(f);
           try { const p = await host(f), st = await metadata(f); if (st.isDirectory()) await fs.rmdir(p); else await fs.unlink(p); }
           finally { await clearFid(id); }
           break;

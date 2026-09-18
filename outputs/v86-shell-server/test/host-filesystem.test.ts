@@ -11,11 +11,11 @@ const u32 = (n: number) => { const b = Buffer.alloc(4); b.writeUInt32LE(n >>> 0)
 const u64 = (n: number | bigint) => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; };
 const str = (s: string) => Buffer.concat([u16(Buffer.byteLength(s)), Buffer.from(s)]);
 
-async function fixture(t: test.TestContext) {
+async function fixture(t: test.TestContext, modes: { left?: 'ro' | 'rw'; right?: 'ro' | 'rw' } = {}) {
   const base = await fs.mkdtemp(path.join(os.tmpdir(), 'v86-9p-test-'));
   const left = path.join(base, 'left'), right = path.join(base, 'right');
   await fs.mkdir(left); await fs.mkdir(right);
-  const bridge = await createHostFilesystem([{ name: 'left', hostPath: left }, { name: 'right', hostPath: right }]);
+  const bridge = await createHostFilesystem([{ name: 'left', hostPath: left, mode: modes.left }, { name: 'right', hostPath: right, mode: modes.right }]);
   t.after(async () => { await bridge.close(); await fs.rm(base, { recursive: true, force: true }); });
   let tag = 0;
   async function raw(type: number, ...body: Buffer[]) {
@@ -152,4 +152,117 @@ test('mount boundaries, malformed names, special nodes and Linux errno are enfor
   await f.error(22, 118, u32(1), u64(0), u32(100), Buffer.from('short'));
   await f.walk(1, 3, '..'); assert.deepEqual(await f.list(3), ['.', '..', 'left', 'right']);
   assert.equal((await f.call(8, u32(1))).length, 60);
+});
+
+test('read-only mounts remain live for reads while refusing every writable open flag and direct write', async t => {
+  const f = await fixture(t, { left: 'ro', right: 'rw' });
+  const file = path.join(f.left, 'file'); await fs.writeFile(file, 'initial'); await fs.chmod(file, 0o666);
+  await f.walk(1, 3, 'file');
+  for (const flags of [1, 2, 0x40, 0x200, 0x400]) await f.error(30, 12, u32(3), u32(flags));
+  await f.call(12, u32(3), u32(0));
+  assert.equal((await f.read(3)).toString(), 'initial');
+  await fs.writeFile(file, 'changed by host');
+  assert.equal((await f.read(3)).toString(), 'changed by host');
+  await f.error(30, 118, u32(3), u64(0), u32(4), Buffer.from('evil'));
+  assert.equal(await fs.readFile(file, 'utf8'), 'changed by host');
+  assert.deepEqual(await f.list(1), ['.', '..', 'file']);
+  await f.walk(2, 4);
+  await f.call(14, u32(4), str('writable'), u32(2), u32(0o644), u32(1000));
+  await f.write(4, Buffer.from('allowed'));
+  assert.equal(await fs.readFile(path.join(f.right, 'writable'), 'utf8'), 'allowed');
+});
+
+test('read-only 9P mutations cannot alter content, metadata, or directory entries', async t => {
+  const f = await fixture(t, { left: 'ro' });
+  const file = path.join(f.left, 'file'); await fs.writeFile(file, 'original');
+  await fs.mkdir(path.join(f.left, 'directory'));
+  await f.walk(1, 3, 'file'); await f.walk(1, 4, 'directory');
+  const before = await fs.stat(file), rootBefore = await fs.stat(f.left);
+  for (const [valid, mode, size] of [[1, 0o600, 0], [8, 0, 0], [16 | 32, 0, 0], [2 | 4, 0, 0]]) {
+    await f.error(30, 26, u32(3), u32(valid), u32(mode), u32(1000), u32(1000), u64(size), u64(0), u64(0), u64(0), u64(0));
+  }
+  await f.error(30, 26, u32(1), u32(1), u32(0o700), u32(1000), u32(1000), u64(0), u64(0), u64(0), u64(0), u64(0));
+  await f.error(30, 14, u32(1), str('new'), u32(2), u32(0o644), u32(1000));
+  await f.error(30, 72, u32(1), str('newdir'), u32(0o755), u32(1000));
+  await f.error(30, 16, u32(1), str('symlink'), str('file'), u32(1000));
+  await f.error(30, 70, u32(1), u32(3), str('hardlink'));
+  await f.error(30, 70, u32(2), u32(3), str('exported-hardlink'));
+  await f.error(30, 20, u32(3), u32(1), str('renamed'));
+  await f.error(30, 74, u32(1), str('file'), u32(1), str('renamed'));
+  await f.error(30, 76, u32(1), str('file'), u32(0));
+  await f.error(30, 76, u32(1), str('directory'), u32(0x200));
+  await f.error(30, 122, u32(3));
+  await f.error(30, 122, u32(4));
+  const after = await fs.stat(file), rootAfter = await fs.stat(f.left);
+  for (const key of ['mode', 'size', 'mtimeMs', 'ctimeMs', 'nlink'] as const) assert.equal(after[key], before[key], key);
+  for (const key of ['mode', 'mtimeMs', 'ctimeMs', 'nlink'] as const) assert.equal(rootAfter[key], rootBefore[key], `root ${key}`);
+  assert.equal(await fs.readFile(file, 'utf8'), 'original');
+  assert.deepEqual(await fs.readdir(f.left), ['directory', 'file']);
+  assert.deepEqual(await fs.readdir(f.right), []);
+});
+
+test('rejects mixed-mode canonical aliases and overlapping parents in either input order', async t => {
+  const f = await fixture(t);
+  const nested = path.join(f.left, 'nested'); await fs.mkdir(nested);
+  const alias = path.join(f.base, 'alias'); await fs.symlink(f.left, alias);
+  for (const mounts of [
+    [{ name: 'ro', hostPath: f.left, mode: 'ro' }, { name: 'rw', hostPath: f.left, mode: 'rw' }],
+    [{ name: 'ro', hostPath: f.left, mode: 'ro' }, { name: 'rw', hostPath: alias }],
+    [{ name: 'ro', hostPath: nested, mode: 'ro' }, { name: 'rw', hostPath: f.left }],
+    [{ name: 'ro', hostPath: f.left, mode: 'ro' }, { name: 'rw', hostPath: nested }],
+  ] as const) {
+    await assert.rejects(createHostFilesystem([...mounts]), /overlap|read.only/i);
+    await assert.rejects(createHostFilesystem([...mounts].reverse()), /overlap|read.only/i);
+  }
+  const sameMode = await createHostFilesystem([{ name: 'a', hostPath: f.left, mode: 'ro' }, { name: 'b', hostPath: nested, mode: 'ro' }]);
+  await sameMode.close();
+  await assert.rejects(createHostFilesystem([{ name: 'invalid', hostPath: f.left, mode: 'invalid' as any }]), /mode/i);
+});
+
+test('pre-existing hardlinks in writable mounts cannot change read-only files through inode aliases', async t => {
+  const f = await fixture(t, { left: 'ro', right: 'rw' });
+  const original = path.join(f.left, 'protected'), alias = path.join(f.right, 'alias');
+  await fs.writeFile(original, 'protected contents'); await fs.link(original, alias);
+  await fs.writeFile(path.join(f.right, 'replacement'), 'replacement');
+  await f.walk(2, 3, 'alias'); await f.walk(2, 4, 'replacement');
+  const before = await fs.stat(original);
+  await f.error(30, 12, u32(3), u32(2));
+  await f.error(30, 12, u32(3), u32(0x200));
+  for (const valid of [1, 8, 16 | 32]) await f.error(30, 26, u32(3), u32(valid), u32(0o600), u32(1000), u32(1000), u64(0), u64(0), u64(0), u64(0), u64(0));
+  await f.error(30, 70, u32(2), u32(3), str('another-alias'));
+  await f.error(30, 20, u32(3), u32(2), str('moved'));
+  await f.error(30, 20, u32(4), u32(2), str('alias'));
+  await f.error(30, 76, u32(2), str('alias'), u32(0));
+  await f.error(30, 122, u32(3));
+  await f.call(12, u32(3), u32(0));
+  await f.error(30, 118, u32(3), u64(0), u32(4), Buffer.from('evil'));
+  const after = await fs.stat(original);
+  for (const key of ['mode', 'size', 'mtimeMs', 'ctimeMs', 'nlink'] as const) assert.equal(after[key], before[key], key);
+  assert.equal((await f.read(3)).toString(), 'protected contents');
+});
+
+test('a writable fid is rechecked when the host later adds a read-only hardlink alias', async t => {
+  const f = await fixture(t, { left: 'ro', right: 'rw' });
+  const writable = path.join(f.right, 'file'), protectedPath = path.join(f.left, 'protected');
+  await fs.writeFile(writable, 'before alias');
+  await f.walk(2, 3, 'file'); await f.call(12, u32(3), u32(2));
+  await f.write(3, Buffer.from('allowed data'));
+  await fs.link(writable, protectedPath);
+  const before = await fs.stat(protectedPath);
+  await f.error(30, 118, u32(3), u64(0), u32(4), Buffer.from('evil'));
+  await f.error(30, 26, u32(3), u32(1 | 8), u32(0o600), u32(1000), u32(1000), u64(0), u64(0), u64(0), u64(0), u64(0));
+  const after = await fs.stat(protectedPath);
+  for (const key of ['mode', 'size', 'mtimeMs', 'ctimeMs', 'nlink'] as const) assert.equal(after[key], before[key], key);
+  assert.equal(await fs.readFile(protectedPath, 'utf8'), 'allowed data');
+});
+
+test('hardlink creation is refused with any read-only mount without freezing the writable source', async t => {
+  const f = await fixture(t, { left: 'ro', right: 'rw' });
+  const source = path.join(f.right, 'source'); await fs.writeFile(source, 'original');
+  await f.walk(2, 3, 'source');
+  await f.error(30, 70, u32(2), u32(3), str('new-link'));
+  assert.equal((await fs.stat(source)).nlink, 1);
+  await assert.rejects(fs.stat(path.join(f.right, 'new-link')), { code: 'ENOENT' });
+  await f.call(12, u32(3), u32(2)); await f.write(3, Buffer.from('updated!'));
+  assert.equal(await fs.readFile(source, 'utf8'), 'updated!');
 });
