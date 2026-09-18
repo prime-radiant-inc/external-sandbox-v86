@@ -1,0 +1,6 @@
+{"type":"update","requests":1,"errors":0,"slow":0,"p95Ms":12,"maxMs":12}
+{"type":"update","requests":2,"errors":0,"slow":0,"p95Ms":37,"maxMs":37}
+{"type":"update","requests":3,"errors":1,"slow":1,"p95Ms":1250,"maxMs":1250}
+{"type":"update","requests":4,"errors":1,"slow":2,"p95Ms":1250,"maxMs":1250}
+{"type":"update","requests":5,"errors":1,"slow":2,"p95Ms":1250,"maxMs":1250}
+{"type":"summary","requests":5,"errors":1,"slow":2,"p95Ms":1250,"maxMs":1250}

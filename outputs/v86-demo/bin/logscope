@@ -1,0 +1,79 @@
+#!/bin/bash
+# Logscope: a dependency-free streaming HTTP log analyzer.
+set -eu
+slow=1000
+fail_on_errors=0
+while (($#)); do
+    case "$1" in
+        --slow-ms)
+            if [[ $# -lt 2 || ! "$2" =~ ^[0-9]{1,9}$ ]]; then
+                echo 'logscope: --slow-ms requires an integer from 0 to 600000' >&2
+                exit 2
+            fi
+            slow=$((10#$2))
+            if ((slow > 600000)); then
+                echo 'logscope: --slow-ms must not exceed 600000' >&2
+                exit 2
+            fi
+            shift 2
+            ;;
+        --fail-on-errors) fail_on_errors=1; shift ;;
+        --version) echo 'logscope 0.1.0'; exit 0 ;;
+        --help)
+            cat <<'HELP'
+Usage: logscope [--slow-ms N] [--fail-on-errors]
+Read METHOD PATH STATUS DURATION_MS records from stdin.
+Stream JSON statistics to stdout and alerts to stderr.
+The default slow threshold is 1000 ms (inclusive).
+Exit: 0 success, 2 invalid input/arguments, 3 server errors with --fail-on-errors.
+At most 10000 records; integer durations must be between 0 and 600000 ms.
+HELP
+            exit 0 ;;
+        *) printf 'logscope: unknown argument: %s\n' "$1" >&2; exit 2 ;;
+    esac
+done
+
+exec awk -v slowThreshold="$slow" -v failOnErrors="$fail_on_errors" '
+function report(kind, rank) {
+    rank = int((95 * n + 99) / 100)
+    printf "{\"type\":\"%s\",\"requests\":%d,\"errors\":%d,\"slow\":%d,\"p95Ms\":%d,\"maxMs\":%d}\n", kind, n, errors, slow, (n ? latency[rank] : 0), maximum
+    fflush()
+}
+function alert(kind) {
+    printf "ALERT %s method=%s path=%s status=%d duration_ms=%d\n", kind, $1, $2, $3, $4 > "/dev/stderr"
+    fflush("/dev/stderr")
+}
+/^[[:space:]]*($|#)/ { next }
+{
+    if (NF != 4 || $1 !~ /^[A-Z]+$/ || substr($2, 1, 1) != "/" ||
+        $3 !~ /^[0-9][0-9][0-9]$/ || $3 < 100 || $3 > 599 ||
+        $4 !~ /^[0-9]+$/ || $4 + 0 > 600000) {
+        printf "INVALID line=%d: expected METHOD /PATH STATUS(100..599) MILLISECONDS(0..600000)\n", NR > "/dev/stderr"
+        fflush("/dev/stderr")
+        invalid = 1
+        next
+    }
+    if (n >= 10000) {
+        print "INVALID: record limit of 10000 exceeded; split the input into batches" > "/dev/stderr"
+        invalid = 1
+        exit 2
+    }
+    n++
+    ms = $4 + 0
+    position = n
+    while (position > 1 && latency[position - 1] > ms) {
+        latency[position] = latency[position - 1]
+        position--
+    }
+    latency[position] = ms
+    if (ms > maximum) maximum = ms
+    if ($3 >= 500) { errors++; alert("server-error") }
+    if (ms >= slowThreshold) { slow++; alert("slow") }
+    report("update")
+}
+END {
+    report("summary")
+    if (invalid) exit 2
+    if (failOnErrors && errors) exit 3
+}
+'
