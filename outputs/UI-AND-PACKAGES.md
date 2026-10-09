@@ -72,5 +72,5 @@ copy byte-for-byte, including the concurrently added copy feature.
 
 [Full test output](ui-packages-test-results.txt) ·
 [Machine-readable verification](ui-packages-verification.json) ·
-[Browser UI guide](v86-shell-server/docs/browser-ui.md) ·
-[Package installation guide](v86-shell-server/docs/packages.md).
+[Browser UI guide](remote-sandbox-v86/docs/browser-ui.md) ·
+[Package installation guide](remote-sandbox-v86/docs/packages.md).

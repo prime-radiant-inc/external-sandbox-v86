@@ -9,11 +9,12 @@ outputs/*.tgz
 work/npm-cache/
 work/npm-package-smoke/
 work/codex-exec/
-outputs/v86-shell-server/images/cache/
-outputs/v86-shell-server/images/build/
+outputs/remote-sandbox-v86/images/cache/
+outputs/remote-sandbox-v86/images/build/
 # Local proxy credentials and generated CA private keys must never be committed.
 .env
 .env.*
 !.env.example
+.remote-sandbox-proxy/
 .v86-proxy/
 *.local.json

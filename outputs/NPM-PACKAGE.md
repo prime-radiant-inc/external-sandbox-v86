@@ -53,7 +53,7 @@ see the official [npm exec/npx documentation](https://docs.npmjs.com/cli/v11/com
 
 Networking remains disabled by default. To enable the embedded policy proxy,
 add `--proxy-config /path/to/proxy.json`; policy files and real credentials stay
-outside the package. See the [proxy guide](v86-shell-server/docs/proxy.md).
+outside the package. See the [proxy guide](remote-sandbox-v86/docs/proxy.md).
 
 ## Install once
 
@@ -91,7 +91,7 @@ npx --yes --package ./v86-shell-server-0.1.0.tgz \
 The new `v86-exec` executable locates the Python script through npm's executable
 links and forwards commands, stdin, output, exit codes, and cancellation. The
 server itself does not need uv. Full instructions, including Claude Code setup,
-are in the [package guide](v86-shell-server/docs/npm.md).
+are in the [package guide](remote-sandbox-v86/docs/npm.md).
 
 ## Verification
 

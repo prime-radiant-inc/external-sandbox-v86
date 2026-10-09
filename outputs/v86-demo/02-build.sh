@@ -114,7 +114,7 @@ tool, not a production-scale telemetry database. No terminal UI or PTY is requir
 Run `bash test.sh` for the contract tests. The demo began with a stub that failed
 all 17 tests, then implemented the CLI and reran the same tests. `01-tests.sh` and
 `02-build.sh` contain the exact guest command bodies. The host talks to the VM
-through the Python/uv WebSocket client in the adjacent v86-shell-server app.
+through the Python/uv WebSocket client in the adjacent remote-sandbox-v86 app.
 
 The release archive `dist/logscope-0.1.0.tar.gz` is built inside the VM. Its files
 are immediately visible on the host through the live 9p mount.

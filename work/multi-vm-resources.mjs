@@ -2,9 +2,9 @@ import os from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { setTimeout as delay } from 'node:timers/promises';
 import { stat } from 'node:fs/promises';
-import { ShellVM } from '../outputs/v86-shell-server/dist/vm.js';
+import { ShellVM } from '../outputs/remote-sandbox-v86/dist/vm.js';
 
-const image = new URL('../outputs/v86-shell-server/images/linux/', import.meta.url).pathname;
+const image = new URL('../outputs/remote-sandbox-v86/images/linux/', import.meta.url).pathname;
 const memoryMiB = Number(process.argv[2] || 256);
 const count = Number(process.argv[3] || 2);
 const vms = [];
