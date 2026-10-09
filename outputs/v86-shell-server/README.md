@@ -290,6 +290,8 @@ is unchanged: opt in with `V86_FORWARD_STDIN=1`, capped at 32 KiB total.
 
 ## Validation and source
 
+The terminal and proxy pages use a pinned copy of the independent `exec-server-ui` assets and frontend tests. The server retains its own authorization, CSP, and runtime configuration adapters. `npm run check` and `npm run build` verify the copied files against their SHA-256 manifest; see [shared UI update instructions](docs/browser-ui.md#updating-the-shared-ui). Released npm packages include static runtime assets, provenance, and the complete source bundle without requiring the UI repository.
+
 ```sh
 npm run check
 npm test

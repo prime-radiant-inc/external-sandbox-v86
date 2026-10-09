@@ -4,8 +4,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { RequestError } from '../http.js';
 import { checkUiAccess, rawHeaderValues, safeEqual, uiHeaders } from './browser-access.js';
 
-const pageTemplate = readFileSync(new URL('./assets/terminal.html', import.meta.url), 'utf8');
-const javascript = readFileSync(new URL('./assets/terminal.js', import.meta.url));
+const pageTemplate = readFileSync(new URL('./shared/assets/terminal.html', import.meta.url), 'utf8');
+const javascript = readFileSync(new URL('./shared/assets/terminal.js', import.meta.url));
 const protocol = 'sandbox-terminal';
 
 function escapeHtml(value: string): string {
@@ -35,12 +35,13 @@ export function createTerminalUi(info: () => object, options: { proxyEnabled?: b
       const proxyEnabled = options.proxyEnabled ?? details.proxyEnabled ?? false;
       const values: Record<string, string> = {
         __NONCE__: nonce, __TOKEN__: token,
+        __TITLE__: escapeHtml('v86 terminal'), __BRAND__: escapeHtml('v86 shell server'),
         __CWD__: escapeHtml(String(details.defaultCwd ?? '/workspace')),
         __NETWORK__: proxyEnabled ? 'Managed proxy' : 'Network disabled',
         __PROXY_LINK__: proxyEnabled ? '<a id="proxy-link" href="/proxy" target="_blank" rel="noopener">Network policy ↗</a>' : '',
       };
       // Replace original template markers only: a mount path can contain marker text.
-      const page = pageTemplate.replace(/__NONCE__|__TOKEN__|__CWD__|__NETWORK__|__PROXY_LINK__/g, marker => values[marker]);
+      const page = pageTemplate.replace(/__NONCE__|__TOKEN__|__TITLE__|__BRAND__|__CWD__|__NETWORK__|__PROXY_LINK__/g, marker => values[marker]);
       const scheme = (req.socket as { encrypted?: boolean }).encrypted ? 'wss' : 'ws';
       headers['content-security-policy'] = `default-src 'none'; script-src 'self'; style-src 'nonce-${nonce}'; connect-src 'self' ${scheme}://${req.headers.host}; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`;
       headers['cross-origin-opener-policy'] = 'same-origin';

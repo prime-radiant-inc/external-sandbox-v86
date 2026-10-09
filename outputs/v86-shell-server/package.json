@@ -19,7 +19,6 @@
     "dist/**/*.js",
     "dist/**/*.d.ts",
     "dist/**/*.js.map",
-    "dist/ui/assets/*",
     "src/**/*.ts",
     "tsconfig.json",
     "scripts/v86_exec.py",
@@ -48,19 +47,23 @@
     "docs/*.md",
     "examples/*.json",
     "PROVENANCE.md",
-    "src/ui/assets/*",
-    "scripts/copy-ui-assets.mjs"
+    "scripts/copy-ui-assets.mjs",
+    "dist/ui/shared/assets/*",
+    "dist/ui/shared/manifest.json",
+    "dist/ui/shared/package.json",
+    "src/ui/shared/**"
   ],
   "scripts": {
     "prepack": "npm run build",
     "build": "tsc -p tsconfig.json && node scripts/copy-ui-assets.mjs",
     "start": "node dist/cli.js",
     "dev": "node --import tsx src/cli.ts",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit && npm run check:ui",
     "test": "node --import tsx --test test/*.test.ts test/*.test.mjs",
     "test:proxy": "node --import tsx --test test/proxy-*.test.ts test/managed-proxy.test.ts test/wisp-relay.test.ts test/v86-network-guard.test.ts",
     "test:integration": "node --import tsx --test test/integration/*.test.ts",
-    "test:python": "uv run --with websockets==17.0.1 python -m unittest discover -s test/python -v"
+    "test:python": "uv run --with websockets==17.0.1 python -m unittest discover -s test/python -v",
+    "check:ui": "node scripts/copy-ui-assets.mjs --check"
   },
   "dependencies": {
     "node-forge": "1.4.0",

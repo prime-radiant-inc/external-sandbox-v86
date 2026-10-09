@@ -51,7 +51,7 @@ function readPolicy(req: IncomingMessage): Promise<Buffer> {
 export function createProxyManagementUi(proxy: ProxyManagement):
   (req: IncomingMessage, res: ServerResponse, path: string) => Promise<boolean> {
   const token = randomBytes(32).toString('base64url');
-  const page = readFileSync(new URL('./assets/proxy.html', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('./shared/assets/proxy.html', import.meta.url), 'utf8');
   return async (req, res, path) => {
     if (path !== '/proxy' && path !== '/proxy/api') return false;
     try {
@@ -63,7 +63,8 @@ export function createProxyManagementUi(proxy: ProxyManagement):
       checkUiAccess(req);
       if (path === '/proxy') {
         const nonce = randomBytes(24).toString('base64url');
-        const body = page.replaceAll('__NONCE__', nonce).replaceAll('__TOKEN__', token);
+        const values: Record<string, string> = { __NONCE__: nonce, __TOKEN__: token };
+        const body = page.replace(/__NONCE__|__TOKEN__/g, marker => values[marker]);
         res.writeHead(200, { ...uiHeaders(), 'content-type': 'text/html; charset=utf-8',
           'content-length': Buffer.byteLength(body), 'cross-origin-opener-policy': 'same-origin',
           'content-security-policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'` });

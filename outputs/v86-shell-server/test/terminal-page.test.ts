@@ -41,12 +41,14 @@ async function fixture(t: TestContext, info: object = {}, proxyEnabled?: boolean
 }
 
 test('terminal page escapes guest paths once and includes only the enabled proxy link', async t => {
-  const f = await fixture(t, { defaultCwd: '/mnt/<x>"__TOKEN__&', proxyEnabled: true });
+  const f = await fixture(t, { defaultCwd: '/mnt/<x>"__TOKEN____TITLE____BRAND__&', proxyEnabled: true });
   const page = await f.send();
   assert.equal(page.status, 200);
-  assert.match(page.body, /value="\/mnt\/&lt;x&gt;&quot;__TOKEN__&amp;"/);
+  assert.match(page.body, /value="\/mnt\/&lt;x&gt;&quot;__TOKEN____TITLE____BRAND__&amp;"/);
   assert.match(page.body, /href="\/proxy"/);
   assert.match(page.body, /terminal-token/);
+  assert.match(page.body, /<title>v86 terminal<\/title>/);
+  assert.match(page.body, /class="eyebrow">v86 shell server<\/div>/);
   assert.match(page.body, /src="\/terminal.js"/);
   assert.match(page.body, /Each run starts a new shell/);
   const offline = await fixture(t);

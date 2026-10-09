@@ -3,7 +3,6 @@ import { once } from 'node:events';
 import { createServer, request, type IncomingHttpHeaders } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import test, { type TestContext } from 'node:test';
-import { runInNewContext } from 'node:vm';
 import { createProxyManagementUi, type ProxyManagement } from '../src/ui/proxy-management.js';
 
 const POLICY = { allow: [{ origin: 'https://api.example.test', methods: ['GET'], credential: {
@@ -64,7 +63,7 @@ async function fixture(t: TestContext) {
   return { send, proxy, page, token, headers, origin };
 }
 
-test('proxy management serves the cloned page and a token-protected safe snapshot', async t => {
+test('proxy management serves the shared page and a token-protected safe snapshot', async t => {
   const f = await fixture(t);
   const page = await f.send('/proxy');
   assert.ok(page.text.includes(`content="${f.token}"`));
@@ -175,69 +174,4 @@ test('activity is JSON data, never interpolated into HTML; snapshot errors stay 
   const failed = await f.send('/proxy/api', { headers: f.headers });
   assert.equal(failed.status, 500);
   assert.ok(!failed.text.includes(f.proxy.secret));
-});
-
-function browser(html: string) {
-  class Element {
-    textContent = ''; className = ''; value = ''; disabled = false; hidden = false;
-    children: Element[] = []; listeners = new Map<string, (...args: any[]) => unknown>();
-    append(...items: Element[]) { this.children.push(...items); }
-    replaceChildren(...items: Element[]) { this.children = items; }
-    addEventListener(event: string, listener: (...args: any[]) => unknown) { this.listeners.set(event, listener); }
-    fire(event: string) { return this.listeners.get(event)?.(); }
-  }
-  const elements = new Map<string, Element>();
-  const byId = (id: string) => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id)!; };
-  const pending: { resolve(value: unknown): void; method: string; headers: Record<string, string>; body?: string }[] = [];
-  let refresh!: () => Promise<void>;
-  runInNewContext(/<script nonce="[^"]+">([\s\S]*?)<\/script>/.exec(html)![1], {
-    document: { getElementById: byId, querySelector: () => ({ content: 'test-token' }), createElement: () => new Element() },
-    fetch: (_url: string, options: any) => new Promise(resolve => pending.push({ ...options,
-      resolve: (value: unknown) => resolve({ ok: true, json: async () => value }) })),
-    setInterval: (fn: () => Promise<void>, ms: number) => { assert.equal(ms, 3000); refresh = fn; },
-  });
-  const settle = () => new Promise<void>(resolve => setImmediate(resolve));
-  return { byId, pending, refresh, settle };
-}
-
-test('cloned browser client preserves dirty edits during polling and discards to latest policy', async t => {
-  const f = await fixture(t);
-  const ui = browser(f.page.text);
-  assert.equal(ui.pending[0].headers['X-Proxy-Token'], 'test-token');
-  ui.pending.shift()!.resolve(f.proxy.snapshot()); await ui.settle();
-  const editor = ui.byId('policy');
-  editor.value = '{"allow":[]}'; editor.fire('input');
-  assert.equal(ui.byId('save').disabled, false);
-  const refresh = ui.refresh();
-  const changed = { allow: [{ origin: 'https://new.example.test' }] };
-  ui.pending.shift()!.resolve({ enabled: true, policy: changed, events: [] }); await refresh;
-  assert.equal(editor.value, '{"allow":[]}');
-  assert.equal(ui.byId('edit-state').textContent, 'Unsaved edits');
-  ui.byId('reset').fire('click');
-  assert.deepEqual(JSON.parse(editor.value), changed);
-  assert.equal(ui.byId('save').disabled, true);
-});
-
-test('cloned browser client ignores stale polls after Apply and renders hostile strings safely', async t => {
-  const f = await fixture(t);
-  const ui = browser(f.page.text);
-  ui.pending.shift()!.resolve(f.proxy.snapshot()); await ui.settle();
-  const oldRefresh = ui.refresh();
-  const stale = ui.pending.shift()!;
-  ui.byId('policy').value = 'invalid JSON'; ui.byId('policy').fire('input');
-  await ui.byId('save').fire('click');
-  assert.equal(ui.pending.length, 0);
-  assert.match(ui.byId('message').textContent, /valid JSON/);
-  ui.byId('policy').value = '{"allow":[]}'; ui.byId('policy').fire('input');
-  const applied = ui.byId('save').fire('click');
-  assert.equal(ui.byId('policy').disabled, true);
-  assert.equal(ui.pending[0].method, 'PUT');
-  assert.deepEqual(JSON.parse(ui.pending[0].body!), { allow: [] });
-  const hostile = '<img src=x onerror=alert(1)>';
-  ui.pending.shift()!.resolve({ enabled: true, policy: { allow: [] }, events: [{ reason: hostile }] });
-  await applied;
-  stale.resolve(f.proxy.snapshot()); await oldRefresh;
-  assert.deepEqual(JSON.parse(ui.byId('policy').value), { allow: [] });
-  assert.equal(ui.byId('events').children[0].children[3].textContent, hostile);
-  assert.equal(ui.byId('policy').disabled, false);
 });
