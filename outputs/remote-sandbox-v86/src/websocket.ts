@@ -58,8 +58,13 @@ export function attachWebSocketApi(server: Server, executor: StreamingExecutor, 
       if (stopping) throw new RequestError(503, 'Server is shutting down.');
       if (!request.url?.startsWith('/')) throw new RequestError(400, 'An absolute-path request target is required.');
       if (new URL(request.url, 'http://localhost').pathname !== '/exec/ws') throw new RequestError(404, 'Route not found.');
-      if (request.headers.origin !== undefined && options.terminal) options.terminal.authorizeWebSocket(request);
-      else checkBrowserAccess(request);
+      // Fetch Metadata still identifies a browser request when Origin is missing.
+      const browserRequest = request.headers.origin !== undefined
+        || Object.keys(request.headers).some(name => name.startsWith('sec-fetch-'));
+      if (browserRequest) {
+        if (!options.terminal) throw new RequestError(403, 'Browser WebSockets require terminal authorization.');
+        options.terminal.authorizeWebSocket(request);
+      } else checkBrowserAccess(request);
       wss.handleUpgrade(request, socket, head, ws => wss.emit('connection', ws, request));
     } catch (error) {
       const status = error instanceof RequestError ? error.statusCode : 400;

@@ -1,8 +1,23 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { createServer } from 'node:http';
 import test, { type TestContext } from 'node:test';
 import WebSocket from 'ws';
 import { createApiServer } from '../src/http.js';
+import { attachWebSocketApi } from '../src/websocket.js';
+
+async function upgradeStatus(url: string, headers: Record<string, string>, protocols: string[] = []): Promise<number> {
+  const ws = new WebSocket(url, protocols, { headers });
+  return new Promise((resolve, reject) => {
+    ws.once('unexpected-response', (_request, response) => {
+      response.resume();
+      resolve(response.statusCode!);
+      ws.terminate();
+    });
+    ws.once('open', () => { resolve(101); ws.terminate(); });
+    ws.on('error', reject);
+  });
+}
 
 async function fixture(t: TestContext) {
   const server = createApiServer({ info: () => ({ defaultCwd: '/workspace' }),
@@ -22,7 +37,9 @@ async function fixture(t: TestContext) {
 
 test('terminal token authorizes only same-origin command sockets and is never negotiated', async t => {
   const f = await fixture(t);
-  const ws = new WebSocket(f.url, ['sandbox-terminal', `sandbox-token.${f.token}`], { origin: f.origin });
+  const ws = new WebSocket(f.url, ['sandbox-terminal', `sandbox-token.${f.token}`], {
+    origin: f.origin, headers: { 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Mode': 'websocket' },
+  });
   t.after(() => ws.terminate());
   await once(ws, 'open');
   assert.equal(ws.protocol, 'sandbox-terminal');
@@ -59,4 +76,38 @@ test('browser socket rejects absent/wrong tokens, origins, cross-site metadata, 
   const buffered = await fetch(f.origin + '/exec', { method: 'POST',
     headers: { Origin: f.origin, 'Content-Type': 'application/json' }, body: '{"command":"true"}' });
   assert.equal(buffered.status, 403);
+});
+
+test('Fetch Metadata cannot use the originless CLI WebSocket path', async t => {
+  const f = await fixture(t);
+  const headers: Record<string, string>[] = [
+    { 'Sec-Fetch-Site': 'same-origin' },
+    { 'Sec-Fetch-Site': 'none' },
+    { 'Sec-Fetch-Mode': 'websocket' },
+    { 'Sec-Fetch-Dest': '' },
+    { 'Sec-Fetch-User': '?1' },
+    { 'sEc-FeTcH-sItE': 'same-origin' },
+    { 'Sec-Fetch-Future': '' },
+  ];
+  for (const metadata of headers) {
+    await t.test(JSON.stringify(metadata), async () => {
+      assert.equal(await upgradeStatus(f.url, metadata), 403);
+    });
+  }
+  // A valid token does not replace the mandatory same-origin Origin header.
+  assert.equal(await upgradeStatus(f.url, { 'Sec-Fetch-Site': 'same-origin' },
+    ['sandbox-terminal', `sandbox-token.${f.token}`]), 403);
+});
+
+test('Fetch Metadata is rejected when no terminal authorization adapter is installed', async t => {
+  const server = createServer();
+  let starts = 0;
+  attachWebSocketApi(server, { start: async () => { starts++; throw new Error('Not used'); } });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); }));
+  const url = `ws://127.0.0.1:${(server.address() as { port: number }).port}/exec/ws`;
+  assert.equal(await upgradeStatus(url, { 'Sec-Fetch-Mode': 'websocket' }), 403);
+  assert.equal(await upgradeStatus(url, {}), 101);
+  assert.equal(starts, 0);
 });
