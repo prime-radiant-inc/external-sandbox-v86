@@ -3,7 +3,7 @@
 Implemented and tested on branch `feature/mounts-codex-exec-server`.
 
 [Unpublished npm package 0.2.0](v86-shell-server-0.2.0.tgz) ·
-[Codex setup and limits](remote-sandbox-v86/docs/codex.md) ·
+[Codex protocol and limits](remote-sandbox-v86/docs/codex-protocol.md) ·
 [Full test output](mounts-codex-test-results.txt) ·
 [Package checksum and measurements](mounts-codex-verification.json)
 
@@ -36,7 +36,7 @@ npx --yes --package ./v86-shell-server-0.2.0.tgz \
 Use separate, non-overlapping host directories for different modes.
 The JSON API is `http://127.0.0.1:8686`; the Codex endpoint is
 `ws://127.0.0.1:8686/codex`. Configure it in Codex's `environments.toml` using the
-[complete setup instructions](remote-sandbox-v86/docs/codex.md). No global Codex
+[complete setup instructions](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/codex). No global Codex
 configuration was changed during implementation or testing.
 
 ## Evidence

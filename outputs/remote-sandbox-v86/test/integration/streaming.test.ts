@@ -5,9 +5,13 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { WebSocket } from 'ws';
 import { ShellVM } from '../../src/vm.js';
 import { createApiServer } from '../../src/http.js';
+import { externalClientPath } from './external-client.js';
 
+const sharedClient = externalClientPath('REMOTE_SANDBOX_CLIENT');
+const clientOptions = { skip: sharedClient === undefined && 'Set REMOTE_SANDBOX_CLIENT to run the shared-client integration checks' };
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const quote = (value: string) => `'${value.replaceAll("'", "'\"'\"'")}'`;
 type Message = { type: string; data?: string; id?: number; [key: string]: unknown };
@@ -21,6 +25,7 @@ async function until(predicate: () => boolean, description: string, timeout = 15
   }
 }
 
+// Exercise the metadata-free CLI path; browser WebSockets require terminal auth.
 class Session {
   readonly messages: Message[] = [];
   private error: Error | undefined;
@@ -66,7 +71,7 @@ class Session {
   }
 }
 
-test('real v86 WebSocket streaming and uv Python client', { timeout: 240_000 }, async t => {
+test('real v86 WebSocket streaming with optional shared-client checks', { timeout: 240_000 }, async t => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'v86-stream-test-'));
   const project = await fs.realpath(temp);
   t.after(() => fs.rm(temp, { recursive: true, force: true }));
@@ -189,7 +194,7 @@ test('real v86 WebSocket streaming and uv Python client', { timeout: 240_000 }, 
     done: Promise<{ code: number | null; signal: NodeJS.Signals | null }>;
     waitForOutput: (predicate: () => boolean, description: string, timeout?: number) => Promise<void>;
   } {
-    const child = spawn('uv', ['run', '--quiet', '--script', path.join(root, 'scripts/remote_sandbox_exec.py'), command], {
+    const child = spawn('uv', ['run', '--quiet', '--script', sharedClient!, command], {
       cwd: project, env: { ...process.env, REMOTE_SANDBOX_API_URL: base }, stdio: ['pipe', 'pipe', 'pipe'],
     });
     const stdout: Buffer[] = [], stderr: Buffer[] = [];
@@ -216,7 +221,7 @@ test('real v86 WebSocket streaming and uv Python client', { timeout: 240_000 }, 
     };
   }
 
-  await t.test('uv Python client forwards live stdout/stderr, later stdin, EOF, and nonzero status', async t => {
+  await t.test('uv Python client forwards live stdout/stderr, later stdin, EOF, and nonzero status', clientOptions, async t => {
     const run = client(t, 'printf "client-ready\\n"; printf "client-error\\n" >&2; read -r first; printf "got:%s\\n" "$first"; cat; exit 37');
     await run.waitForOutput(() => run.stdout().toString() === 'client-ready\n' && run.stderr().toString().includes('client-error\n'), 'Python client output before stdin', 30_000);
     run.child.stdin.write('one\n');
@@ -231,7 +236,7 @@ test('real v86 WebSocket streaming and uv Python client', { timeout: 240_000 }, 
     assert.equal(run.stderr().toString(), 'client-error\n');
   });
 
-  await t.test('uv Python client preserves arbitrary binary stdin and output', async t => {
+  await t.test('uv Python client preserves arbitrary binary stdin and output', clientOptions, async t => {
     const script = 'import os\nwhile True:\n data=os.read(0,4096)\n if not data: break\n os.write(1,data)\n os.write(2,data)';
     const run = client(t, `python3 -u -c ${quote(script)}`);
     const bytes = Buffer.from(Array.from({ length: 40 * 1024 }, (_, index) => index % 256));
@@ -243,7 +248,7 @@ test('real v86 WebSocket streaming and uv Python client', { timeout: 240_000 }, 
     assert.deepEqual(run.stdout(), bytes); assert.deepEqual(run.stderr(), bytes);
   });
 
-  await t.test('Python client exits while its parent keeps stdin open', async t => {
+  await t.test('Python client exits while its parent keeps stdin open', clientOptions, async t => {
     const run = client(t, 'printf done; exit 17');
     let result: { code: number | null; signal: NodeJS.Signals | null } | undefined;
     void run.done.then(value => { result = value; });

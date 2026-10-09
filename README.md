@@ -1,8 +1,8 @@
 # remote-sandbox-v86
 
-The application is in [`outputs/remote-sandbox-v86`](outputs/remote-sandbox-v86). It runs Linux in v86/WebAssembly and exposes localhost JSON and WebSocket command APIs, live host directory mounts, and a Python streaming client for shell integrations.
+The application is in [`outputs/remote-sandbox-v86`](outputs/remote-sandbox-v86). It runs Linux in v86/WebAssembly and exposes localhost JSON and WebSocket command APIs and live host directory mounts. Shared shell clients and Claude Code integration live in [remote-sandbox/claude-code](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/claude-code).
 
-- [`outputs/remote-sandbox-v86/README.md`](outputs/remote-sandbox-v86/README.md): setup, API, tests, and Claude Code shell prefix.
+- [`outputs/remote-sandbox-v86/README.md`](outputs/remote-sandbox-v86/README.md): setup, API, tests, and connection details for shared clients.
 - [`outputs/v86-demo`](outputs/v86-demo): software built and tested through the sandbox client, with command transcripts.
 - [`work`](work): reproducible resource measurements and earlier integration experiments.
 
@@ -13,7 +13,6 @@ cd outputs/remote-sandbox-v86
 npm ci
 npm run build
 npm test
-npm run test:python
 npm run test:integration
 ```
 

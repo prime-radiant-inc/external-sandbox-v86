@@ -56,7 +56,7 @@ The VM installs packages from Alpine's HTTPS repositories before serving command
 
 ## Codex exec-server
 
-The same Node process exposes `ws://127.0.0.1:8686/codex`. Configure this URL in Codex's `environments.toml` and use the VM as its execution environment. No Codex binary, Node installation, or extra service is needed inside the guest. See [Codex setup, protocol support, and testing](docs/codex.md).
+The same Node process exposes `ws://127.0.0.1:8686/codex`. Configure this URL in Codex's `environments.toml` and use the VM as its execution environment. No Codex binary, Node installation, or extra service is needed inside the guest. See the shared [Codex setup guide](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/codex) and the backend [protocol support and verification](docs/codex-protocol.md).
 
 ## Managed HTTP(S) networking
 
@@ -106,76 +106,19 @@ Timeouts and output limits kill the guest process group. The corresponding flag 
 
 `GET /health` returns readiness, guest details, mount mappings, default cwd, and active command count. `GET /mounts` returns `{ "mounts": [...] }`.
 
-## Streaming API and Python client
+## Streaming API and shared clients
 
-Install [uv](https://docs.astral.sh/uv/) on the host to run the Python client. Its inline dependency metadata pins `websockets`; uv installs it on first use.
+WebSocket clients connect to `ws://127.0.0.1:8686/exec/ws`, then send a `start` message. Each connection runs one process and supports streaming stdout/stderr, incremental stdin, EOF, and cancellation. See the [WebSocket protocol](docs/streaming.md) for flow control, errors, and a message-by-message example.
 
-```sh
-# With the server running and the current directory mounted:
-uv run --quiet --script scripts/remote_sandbox_exec.py 'printf "ready\\n"; read -r line; printf "got: %s\\n" "$line"'
+The Python streaming client, Claude Code shell-prefix wrappers, and their tests now live in the shared [remote-sandbox/claude-code](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/claude-code) directory. Follow that guide for client installation, Claude environment settings, temporary-directory setup, and examples for either backend. This repository and npm package provide the server; the former `remote-sandbox-v86-exec` companion command has been removed in favor of the shared client.
 
-# Pipe stdin through incrementally, including arbitrary binary data:
-cat input.bin | uv run --quiet --script scripts/remote_sandbox_exec.py 'cat' > output.bin
-
-# Close guest stdin immediately when no input is wanted:
-uv run --quiet --script scripts/remote_sandbox_exec.py --no-stdin 'uname -m'
-```
-
-The client writes each stdout/stderr chunk to the corresponding local stream as it arrives. It keeps reading stdin while the process runs, sends EOF when local stdin closes, and exits promptly even if its parent keeps stdin open. All three streams preserve binary bytes. `uv --quiet` keeps uv's dependency setup messages out of command stderr.
-
-WebSocket clients connect to `ws://127.0.0.1:8686/exec/ws`, then send a `start` message. Each connection runs one process. See the complete [WebSocket protocol and TDD notes](docs/streaming.md), including flow control, EOF, cancellation, errors, and a message-by-message example.
-
-## Claude Code shell prefix
-
-Anthropic documents [`CLAUDE_CODE_SHELL_PREFIX`](https://code.claude.com/docs/en/env-vars) as an executable receiving **one argument containing the complete shell command**. For Bash calls, that argument also contains Claude's setup and cwd bookkeeping. The included `scripts/claude-shell-prefix.sh` forwards that exact argument through the WebSocket API using `uv run --quiet --script scripts/remote_sandbox_exec.py`; it never evaluates the command on the host. stdout, stderr, and stdin stream while the command runs. Install uv and run the client once before launching Claude so its Python dependency is ready.
-
-Use a Bash shell and put Claude's temporary files inside the mounted project, so its cwd bookkeeping file is visible to both Claude and the VM. This changes environment variables only for the Claude process you launch.
-
-In terminal 1:
+For Claude Code, start this backend with its project mounted at the same absolute path inside the VM:
 
 ```sh
-APP=/absolute/path/to/remote-sandbox-v86/outputs/remote-sandbox-v86
-cd /absolute/path/to/your/project
-mkdir -p .remote-sandbox-claude-tmp
-node "$APP/dist/cli.js" --port 8686 --preserve-paths --mount "project=$PWD"
+node dist/cli.js --port 8686 --preserve-paths --mount "project=/absolute/path/to/project"
 ```
 
-In terminal 2, from the same project:
-
-```sh
-APP=/absolute/path/to/remote-sandbox-v86/outputs/remote-sandbox-v86
-CLAUDE_CODE_SHELL=/bin/bash \
-CLAUDE_CODE_TMPDIR="$PWD/.remote-sandbox-claude-tmp" \
-CLAUDE_CODE_SHELL_PREFIX="$APP/scripts/claude-shell-prefix.sh" \
-REMOTE_SANDBOX_API_URL=http://127.0.0.1:8686 \
-claude
-```
-
-Add `.remote-sandbox-claude-tmp/` to your project's gitignore if desired. Mount more directories by adding `--mount NAME=/absolute/path` to the server command. Paths outside those explicit mounts remain unavailable to guest commands. Host shell snapshots under `~/.claude` are not mounted; Claude's optional snapshot source step can fail harmlessly and the guest uses its own environment.
-
-You can test the wrapper without calling a model:
-
-```sh
-"$APP/scripts/claude-shell-prefix.sh" 'uname -m; pwd; printf "hello from Linux\n"'
-"$APP/scripts/claude-shell-prefix.sh" 'printf "an error\n" >&2; exit 7'
-echo "$?" # 7
-```
-
-| Wrapper variable | Default / behavior |
-| --- | --- |
-| `REMOTE_SANDBOX_API_URL` | `http://127.0.0.1:8686`; accepts local `http://` or `ws://` origins |
-| `REMOTE_SANDBOX_CWD` | Optional explicit absolute guest cwd; otherwise maps the wrapper's host cwd using `/mounts` |
-| `REMOTE_SANDBOX_TIMEOUT_MS` | `120000`; maximum `300000` |
-| `REMOTE_SANDBOX_MAX_OUTPUT_BYTES` | Optional override of API output limit |
-| `REMOTE_SANDBOX_FORWARD_STDIN` | Streams stdin by default; set to `0` to close guest stdin immediately |
-
-Client settings use the same `REMOTE_SANDBOX_*` names across implementations. The older `V86_API_URL`, `V86_CWD`, `V86_TIMEOUT_MS`, `V86_MAX_OUTPUT_BYTES`, and `V86_FORWARD_STDIN` names remain fallback aliases; an explicitly set `REMOTE_SANDBOX_*` value always wins, including an empty value that fails validation.
-
-The wrapper sends stdout to stdout, stderr to stderr, and preserves normal exit codes. Signal exits become `128 + signal`, timeout is `124`, and output-limit or API failures are `125`. SIGINT/SIGTERM/SIGHUP cancel the remote command and close the WebSocket connection.
-
-The prefix also applies to hooks, status-line commands, and stdio MCP server startup. Bidirectional pipes support request/response programs. The guest lacks Node/npm, and networking requires explicit proxy configuration. Long-lived programs remain subject to the five-minute timeout and 16 MiB output ceiling. No PTY is allocated, so programs requiring a terminal are unsupported. Claude's native Read/Edit tools still operate on the host: a shell prefix does not put all of Claude Code inside the VM. This integration does not change Claude permissions or sandbox settings.
-
-The previous buffered Node client remains available as `scripts/claude-shell-prefix-http.sh` and `scripts/api-exec.mjs`. Its stdin behavior is unchanged: opt in with `REMOTE_SANDBOX_FORWARD_STDIN=1`, capped at 32 KiB total.
+Set the shared client's `REMOTE_SANDBOX_API_URL` to `http://127.0.0.1:8686`. Add explicit `--mount-ro` or `--mount-rw` options for other directories it needs. A shell prefix routes shell commands; Claude's native host tools remain outside this VM.
 
 ## Mount semantics and scope
 
@@ -211,12 +154,23 @@ The terminal and proxy pages use a pinned copy of the independent `remote-sandbo
 ```sh
 npm run check
 npm test
-npm run test:python
 node --import tsx --test --test-concurrency=1 test/integration/*.test.ts
 ```
 
-Validated on Node 24 / macOS arm64. The integration suite boots real v86 and checks shell behavior, streams and nonzero exits, two live host mounts, host changes after boot, binary writes, file operations, symlink boundaries, stdin/env, concurrent requests, timeout/output caps, disconnect cancellation, and the shell prefix with Claude-style prologue/cwd bookkeeping. Managed proxy tests cover local HTTP/TLS upstreams, secret substitution, host/IP rejection, streaming, direct-connection bypass attempts, and the uv client through real v86. Streaming tests also require output before stdin is sent, successive inputs before EOF, binary data across both streams, input larger than 32 KiB, and Python client completion while its local stdin stays open. Python tests also cover terminal input and cancellation when a downstream output pipe stops reading. The suite uses a deterministic command shaped like Claude Code's current wrapper; it does not make a live Claude model call.
+Validated on Node 24 / macOS arm64. The integration suite boots real v86 and checks shell behavior, streams and nonzero exits, two live host mounts, host changes after boot, binary writes, file operations, symlink boundaries, stdin/env, concurrent requests, timeout/output caps, disconnect cancellation, and optional shared-client scenarios with Claude-style prologue/cwd bookkeeping. Managed proxy tests cover local HTTP/TLS upstreams, secret substitution, host/IP rejection, streaming, direct-connection bypass attempts, and the uv client through real v86. Streaming tests also require output before stdin is sent, successive inputs before EOF, binary data across both streams, input larger than 32 KiB, and Python client completion while its local stdin stays open. Shared-client tests cover terminal input and cancellation when a downstream output pipe stops reading. The suite uses a deterministic command shaped like Claude Code's current wrapper; it does not make a live Claude model call.
 
 Codex integration additionally runs the real installed Codex CLI 0.154.0 against the real VM with deterministic localhost model responses. It verifies shell execution and native `apply_patch` on both mount modes without a paid model call. This compatibility test skips if Codex is missing and requires exactly 0.154.0 when present; set `CODEX_CLI_BIN` to select that binary.
 
 Implementation uses v86's public [`filesystem.handle9p` interface](https://github.com/copy/v86/blob/master/docs/filesystem.md). `src/vm.ts` uses a dedicated serial channel for the guest command agent. Runtime source does not spawn host processes for submitted commands. See [image documentation](images/README.md) for rebuilding and [provenance](PROVENANCE.md) for reused sources and image components.
+
+### Optional shared-client integration checks
+
+Ordinary backend tests do not require another repository. To include the external Python client and Claude prefix scenarios in the real-VM suite, provide absolute paths to the shared [client scripts](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/claude-code):
+
+```sh
+REMOTE_SANDBOX_CLIENT=/absolute/path/to/remote-sandbox/claude-code/remote_sandbox_exec.py \
+REMOTE_SANDBOX_PREFIX=/absolute/path/to/remote-sandbox/claude-code/claude-shell-prefix.sh \
+node --import tsx --test --test-concurrency=1 test/integration/*.test.ts
+```
+
+Without these settings, only the external-client scenarios are skipped. Setting a path explicitly opts into the checks; an invalid or missing file fails the test. The server's own HTTP, WebSocket, mount, and proxy tests remain available without the shared checkout.

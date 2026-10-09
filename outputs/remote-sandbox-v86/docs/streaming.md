@@ -84,9 +84,9 @@ The connection closes without a success result. Slow output consumers that excee
 | Command timeout | 30 seconds API default, up to five minutes |
 | First start message | Ten seconds after connection |
 
-The Python client defaults to a two-minute command timeout, overridable with `REMOTE_SANDBOX_TIMEOUT_MS`. It sends stdin continuously by default; `--no-stdin` or `REMOTE_SANDBOX_FORWARD_STDIN=0` starts the command with EOF. Signals to the client cancel the remote command. Guest stdout/stderr are written to separate local byte streams. Normal exit codes are preserved; a signal becomes `128 + signal`, timeout becomes 124, and an API error or output cap becomes 125.
+The standalone Python client and Claude shell-prefix wrappers are maintained in [remote-sandbox/claude-code](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/claude-code). That guide defines their command-line options, environment settings, byte-stream handling, cancellation, and exit conventions.
 
-Existing Origin and Host checks apply during WebSocket upgrade. The server remains bound to `127.0.0.1`; the Python client rejects non-local origins and redirects and disables environment-configured HTTP proxies for these requests.
+Existing Origin and Host checks apply during WebSocket upgrade. The server remains bound to `127.0.0.1`; shared clients connect to this backend through `REMOTE_SANDBOX_API_URL=http://127.0.0.1:8686`.
 
 ## Test-driven development evidence
 
@@ -116,13 +116,12 @@ The streaming work was built with failing tests before behavior was implemented:
    during startup. Separate bounded buffers for each process now preserve the
    quiet command's output and attribute startup overflow to the correct command.
 
-Run TypeScript and Python tests separately or together with the image-backed suite:
+Run backend unit tests and the image-backed suite:
 
 ```sh
 npm run check
 npm test
-npm run test:python
 npm run test:integration
 ```
 
-Python runs through `uv`; the integration suite also launches the actual Python script as a subprocess against real v86. Tests use temporary mounts and ports. No Claude model call is needed to test the shell-prefix protocol.
+Client-specific tests now live in [the shared client directory](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/claude-code). The historical development evidence above retains its original results. Backend integration tests run the external Python script only when `REMOTE_SANDBOX_CLIENT` is an absolute path to it; the prefix scenario additionally uses `REMOTE_SANDBOX_PREFIX`. See [optional shared-client integration checks](../README.md#optional-shared-client-integration-checks). Tests use temporary mounts and ports without a Claude model call.

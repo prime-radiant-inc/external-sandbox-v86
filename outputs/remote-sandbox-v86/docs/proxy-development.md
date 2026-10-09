@@ -27,9 +27,10 @@ npm run check
 npm run build
 npm test
 npm run test:proxy
-npm run test:python
 npm run test:integration
 ```
+
+The Python-client checks now live in [remote-sandbox/claude-code](https://github.com/prime-radiant-inc/remote-sandbox/tree/main/claude-code); set `REMOTE_SANDBOX_CLIENT` to its absolute script path to include the external client in the real-VM HTTPS scenario. The results below are the original proxy development record.
 
 `test:proxy` is a subset of `npm test`. Its 43 tests cover policy and CIDRs, configuration loading, TLS interception, verified upstream certificates, credential substitution, literal response redaction, SSE and binary uploads, redirect and upgrade rejection, disconnect cleanup, relay restrictions, and queue accounting. The existing Node suite also passed; after adding the final three backpressure tests, the affected proxy subset passed again.
 

@@ -7,11 +7,13 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { ShellVM } from '../../src/vm.js';
 import { createApiServer, type ExecRequest, type ExecResult } from '../../src/http.js';
+import { externalClientPath } from './external-client.js';
 
+const sharedPrefix = externalClientPath('REMOTE_SANDBOX_PREFIX');
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const quote = (text: string) => `'${text.replaceAll("'", "'\"'\"'")}'`;
 
-test('real v86 HTTP API, live mounts and Claude shell prefix', { timeout: 240_000 }, async t => {
+test('real v86 HTTP API, live mounts and optional shared prefix', { timeout: 240_000 }, async t => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'v86-shell-test-'));
   const host = await fs.realpath(temp);
   const project = path.join(host, 'project with spaces');
@@ -103,12 +105,14 @@ test('real v86 HTTP API, live mounts and Claude shell prefix', { timeout: 240_00
     assert.equal(vm.info().activeCommands, 0);
     await assert.rejects(fs.stat(path.join(project, 'cancel-end')), { code: 'ENOENT' });
   });
-  await t.test('Claude prefix runs full quoted prologue and writes a host-readable cwd file', async () => {
+  await t.test('Claude prefix runs full quoted prologue and writes a host-readable cwd file', {
+    skip: sharedPrefix === undefined && 'Set REMOTE_SANDBOX_PREFIX to run the shared-prefix integration check',
+  }, async () => {
     const cwdFile = path.join(data, 'claude-test-cwd');
     const inner = 'printf \'%s\\n\' \'literal $HOME "quotes"\'; printf prefix-error >&2';
     const command = `source /does/not/exist 2>/dev/null || true; eval ${quote(inner)}; pwd -P >| ${quote(cwdFile)}`;
     const run = (script: string) => new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve, reject) => {
-      const child = spawn(path.join(root, 'scripts/claude-shell-prefix.sh'), [script], { cwd: project, env: { ...process.env, REMOTE_SANDBOX_API_URL: base }, stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(sharedPrefix!, [script], { cwd: project, env: { ...process.env, REMOTE_SANDBOX_API_URL: base }, stdio: ['ignore', 'pipe', 'pipe'] });
       let stdout = '', stderr = '';
       child.stdout.on('data', data => { stdout += data; }); child.stderr.on('data', data => { stderr += data; });
       child.on('error', reject); child.on('close', code => resolve({ stdout, stderr, code }));

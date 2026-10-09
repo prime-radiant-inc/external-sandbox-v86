@@ -11,6 +11,8 @@ import { createApiServer } from '../../src/http.js';
 import { createCertificateAuthority } from '../../src/network/certificates.js';
 import { compileProxyPolicy } from '../../src/network/proxy-policy.js';
 import { startManagedProxy } from '../../src/network/managed-proxy.js';
+import { externalClientPath } from './external-client.js';
+const sharedClient = externalClientPath('REMOTE_SANDBOX_CLIENT');
 const image = fileURLToPath(new URL('../../images/linux', import.meta.url));
 
 test('real VM reaches only its managed proxy and receives proxy environment', { timeout: 90_000 }, async t => {
@@ -59,7 +61,9 @@ PY` });
   assert.equal(unexpectedFetch, 0, 'v86 must never use its host DoH fetch path');
 });
 
-test('uv client streams real guest HTTPS requests with scoped UUID substitution', { timeout: 120_000 }, async t => {
+test('uv client streams real guest HTTPS requests with scoped UUID substitution', { timeout: 120_000,
+  skip: sharedClient === undefined && 'Set REMOTE_SANDBOX_CLIENT to run the shared-client HTTPS check',
+}, async t => {
   const upstreamCa = createCertificateAuthority();
   const certificate = upstreamCa.issue('upstream.test');
   const secret = 'sk-local-fixture-' + randomUUID(), placeholder = randomUUID();
@@ -93,7 +97,7 @@ with urllib.request.urlopen(request, timeout=10) as response:
         print(line.decode().rstrip(), flush=True)
 PY`;
   const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
-    const child = spawn('uv', ['run', '--quiet', '--offline', fileURLToPath(new URL('../../scripts/remote_sandbox_exec.py', import.meta.url)), '--no-stdin', command], {
+    const child = spawn('uv', ['run', '--quiet', '--offline', sharedClient!, '--no-stdin', command], {
       env: { ...process.env, REMOTE_SANDBOX_API_URL: `http://127.0.0.1:${(api.address() as { port: number }).port}`, REMOTE_SANDBOX_CWD: '/workspace' }, stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '', stderr = '';
