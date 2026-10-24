@@ -67,7 +67,7 @@ The optional proxy runs inside this Node process; no separate proxy service, Doc
 node dist/cli.js --proxy-config examples/proxy.json --mount project=/path/to/project
 ```
 
-Guest programs receive a placeholder API key, standard proxy settings, and a public CA certificate. The host proxy checks each destination and replaces the exact placeholder header with the real host credential. Direct guest networking is blocked outside the guest, even when a program ignores proxy settings.
+Guest programs receive a placeholder API key, standard proxy settings, and a public CA certificate. The host proxy checks each destination and replaces the exact placeholder header with the real host credential. An allowed upstream can transform and echo that credential despite literal response redaction; use credential rules only with trusted services and narrow their methods and paths. Direct guest networking is blocked outside the guest, even when a program ignores proxy settings.
 
 See [configuration, examples, and security boundaries](docs/proxy.md). This mode supports outbound HTTP(S), including streaming responses, with exact origin rules, optional methods/paths, and optional CIDR allowlists. It does not enable arbitrary TCP/UDP or grant ordinary commands package-install privileges. Omitting `--proxy-config` retains the offline behavior.
 
