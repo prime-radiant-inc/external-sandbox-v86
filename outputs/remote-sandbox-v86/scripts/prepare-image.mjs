@@ -30,11 +30,17 @@ for (let offset = 0; offset + 110 <= archive.length;) {
   if (end > archive.length) throw new Error('Truncated newc archive');
   if (name === 'TRAILER!!!') break;
   maxInode = Math.max(maxInode, fields[0]);
-  entries.push({ name: name.replace(/^\.\//, ''), fields, raw: archive.subarray(offset, end) });
+  entries.push({ name: name.replace(/^\.\//, ''), fields, raw: archive.subarray(offset, end), data: archive.subarray(dataStart, dataStart + fields[6]) });
   offset = end;
 }
 const replacements = new Map();
 replacements.set('init', { mode: 0o100755, data: await fs.readFile(path.join(root, 'images/init')) });
+// Installing from local files records each world entry with a checksum pin.
+// Plain names let runtime package installs upgrade these packages from the
+// repository when a newer package depends on a newer build.
+const world = entries.find(entry => entry.name === 'etc/apk/world');
+if (!world) throw new Error('The initramfs has no /etc/apk/world');
+replacements.set('etc/apk/world', { mode: world.fields[1], data: Buffer.from(world.data.toString('utf8').replace(/><\S*$/gm, '')) });
 const moduleDir = 'usr/local/lib/v86-modules';
 const existingNames = new Set(entries.map(entry => entry.name));
 for (const name of ['usr/local/lib', moduleDir]) {

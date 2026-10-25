@@ -25,6 +25,10 @@ mkdir -p /rootfs/workspace /rootfs/home/agent
 chown 1000:1000 /rootfs/workspace /rootfs/home/agent
 # Remove the compiler toolchain from the runtime filesystem.
 apk --root /rootfs --no-network --no-scripts del gcc musl-dev cpio binutils gmp isl26 mpc1 mpfr4 libstdc++ libgomp libatomic jansson
+# Installing from local files records each world entry with a checksum pin.
+# Plain names let runtime package installs upgrade these packages from the
+# repository when a newer package depends on a newer build.
+sed -i 's/><[^[:space:]]*$//' /rootfs/etc/apk/world
 apk --root /rootfs info -v | LC_ALL=C sort > /out/packages.txt
 # Keep the virtio-9p and optional virtio-net dependency closures.
 mkdir -p /rootfs/usr/local/lib/v86-modules

@@ -21,8 +21,8 @@
     },
     "initrd": {
       "path": "initrd.img",
-      "sha256": "839e9f940b00a23d927d57f05556d7926e53b1496158be168d78587c1cc81f95",
-      "size": 25636661
+      "sha256": "94cb5cd304c3e5c5ea3e4c312267b389ecbcd09107b437281947d3f3b76a0fa5",
+      "size": 26193404
     }
   },
   "build": {
