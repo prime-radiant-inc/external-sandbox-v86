@@ -156,7 +156,7 @@ Set the shared client's `EXTERNAL_SANDBOX_API_URL` to `http://127.0.0.1:8686`. A
   `O_NOFOLLOW`. Pure Node does not expose `openat2`; a trusted host process must
   not swap parent directories during filesystem operations. This is not an
   adversarial-host sandbox; host applications can still update read-only mounts.
-- The API is intended for trusted local processes. Browser Origin requests and
+- The API is intended for trusted local processes. Browser Origin requests, cross-site Fetch Metadata, and
   non-local Host headers are rejected; there is no remote access mode or token
   authentication. Other local processes can call it.
 

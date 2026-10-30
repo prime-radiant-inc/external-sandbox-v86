@@ -68,6 +68,12 @@ export function checkBrowserAccess(req: IncomingMessage): void {
   if (req.headers.origin !== undefined) {
     throw new RequestError(403, 'Browser Origin requests are not allowed.');
   }
+  // Fetch Metadata still identifies a cross-site browser request when Origin is missing.
+  // Node joins repeated values with a comma, which also fails this check.
+  const site = req.headers['sec-fetch-site'];
+  if (site !== undefined && site !== 'none' && site !== 'same-origin') {
+    throw new RequestError(403, 'Cross-site browser requests are not allowed.');
+  }
   const hostHeaders = req.rawHeaders.filter((_, index) => index % 2 === 0)
     .filter(name => name.toLowerCase() === 'host');
   const host = req.headers.host;

@@ -73,6 +73,25 @@ test('health and mounts report VM information', async t => {
   assert.equal(f.calls.length, 0);
 });
 
+test('legacy routes reject cross-site Fetch Metadata without an Origin', async t => {
+  const f = await fixture(t);
+  for (const value of ['cross-site', 'same-site', 'cross-site, none']) {
+    const headers = { 'sec-fetch-site': value };
+    assert.equal((await f.send('/exec', { body: { command: 'true' }, headers })).status, 403);
+    assert.equal((await f.send('/health', { method: 'GET', headers })).status, 403);
+    assert.equal((await f.send('/mounts', { method: 'GET', headers })).status, 403);
+  }
+  assert.equal(f.calls.length, 0);
+});
+
+test('legacy routes keep same-origin Fetch Metadata and clients that send none', async t => {
+  const f = await fixture(t);
+  for (const value of ['none', 'same-origin']) {
+    assert.equal((await f.send('/health', { method: 'GET', headers: { 'sec-fetch-site': value } })).status, 200);
+  }
+  assert.equal((await f.send('/health', { method: 'GET' })).status, 200);
+});
+
 test('rejects web origins and DNS rebinding hosts before executing', async t => {
   const f = await fixture(t);
   for (const origin of ['https://example.com', 'http://localhost', 'null']) {
