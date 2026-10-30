@@ -6,7 +6,7 @@ import { checkBrowserAccess, RequestError } from '../http.js';
 import type { ArgvExecRequest, OutputHandler, StreamingProcess } from '../streaming.js';
 import { createCodexFilesystem, guestPathFromUri, guestPathToUri } from './filesystem.js';
 
-/** Wire contract: openai/codex rust-v0.154.0, exec-server-protocol/src/protocol.rs. */
+/** Wire contract: openai/codex rust-v0.164.0, exec-server-protocol/src/protocol.rs. */
 export interface CodexExecutor {
   info(): { defaultCwd?: string };
   guestEnvironment?(): Record<string, string>;

@@ -30,7 +30,7 @@ POST http://127.0.0.1:8686/exec
 
 GET /health and GET /mounts provide readiness and mounted paths.
 Open / for the browser terminal, and /proxy for live managed proxy controls.
-WebSocket /codex implements the Codex 0.154.0 exec-server protocol.
+WebSocket /codex implements the Codex 0.164.0 exec-server protocol.
 Mount modes appear in /mounts. Networking is off by default.
 `;
 
