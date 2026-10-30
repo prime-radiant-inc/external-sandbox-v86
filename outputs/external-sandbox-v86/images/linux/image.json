@@ -2,6 +2,9 @@
   "formatVersion": 1,
   "v86Version": "0.5.458",
   "memoryMiB": 512,
+  "capabilities": {
+    "startupPackages": true
+  },
   "cmdline": "console=ttyS0,115200 quiet loglevel=3 rdinit=/init panic=-1 acpi=off pci=nomsi",
   "assets": {
     "bios": {
@@ -16,34 +19,31 @@
     },
     "bzimage": {
       "path": "bzimage",
-      "sha256": "fbf5a5deae3df899aa6cae6e4b6683f4c5d474d8dc2f4ed73d873acc52f7fcd1",
-      "size": 7680512
+      "sha256": "a02b47898430dc42a609d9ce7fb76099ec29005351f9c7d25c27395f3350fdd4",
+      "size": 7696896
     },
     "initrd": {
       "path": "initrd.img",
-      "sha256": "981186d99c1d8dc0a62c59d0d33bae045f84d90a110eed8725bc1671f047d39c",
-      "size": 27527411
+      "sha256": "aa0cd0720b3d76aefc5f844210da91c4a444270a8d39d6ac32283b95d8b7a140",
+      "size": 27540153
     }
   },
   "build": {
     "alpine": "3.21.0",
-    "kernel": "6.12.109-r0",
+    "kernel": "6.12.114-r0",
     "agentSource": "guest/agent/agent.c",
     "agentSourceSha256": "bacee19f548cbbc7b7e52144a81c70eabea0a8691a2a778c6608b2f1bb930739",
-    "sourcesLockSha256": "4a7d44dbe3918fd006ba605bee5cd1657eebe6ae9de36412e71c3b0f33e3a055",
     "initSourceSha256": "e9fb260f3b4b23b48af7e382ca7e79fc380e6032b9556f3603c5e0ac7bd69f19",
     "hostFilesystem": "virtio-9p/9p2000.L at /mnt",
+    "sourcesLockSha256": "742487bc8833a31090b10130b4498071905a75b47ca99000ad9a2cf5b295e973",
     "modules": {
-      "netfs.ko.gz": "31939bee13fd2d9e8c839877c8746b34071bfa9f9c87409e34040ee42405f2b2",
-      "9pnet.ko.gz": "dbd617f458b94b091dfa187d05a73d2c8d14f4bec0ea2820449b53ecc9384578",
-      "9pnet_virtio.ko.gz": "137df8b57d686b9712e5edcd13d58fb8e87ff815bdabf78340d0f5241a9dca6a",
-      "9p.ko.gz": "5e89d1afe82f4165700fd586973d40cd2c5f24dafacf154de70e0fa3e7d8faee",
-      "failover.ko.gz": "d1688975bb28168474cf18675fca990205e60b767eb785d8a5805444ccda0dcd",
-      "net_failover.ko.gz": "c97ee76fb87306b46add3a6eb76cdb9b7f01b70ec824b8e5761dddd5f66cfd92",
-      "virtio_net.ko.gz": "435fa8e633cda5d8b81e88fab6127b959e551512d5a073eb2ab0668680d2a23e"
+      "netfs.ko.gz": "6e5001bda74eb744a1ee61d1b697436c7255370ee4059e011eeff283d727cbd9",
+      "9pnet.ko.gz": "e899113b68fa85f5e385006436eab22f4c2d174bb799e02329a09a7b91394c21",
+      "9pnet_virtio.ko.gz": "71f09b306facc0a054ebd8a4cb50162d10030ca339a44852a47bfd6911a6939c",
+      "9p.ko.gz": "dcd403b02cbfe358985d6212fdd38d0612360195a37f54e24da9be1bb39e3b2a",
+      "failover.ko.gz": "0da8f5c8af3d5343d7f922cb4830a0e7338f7b6b6d607627aeb0a046eec16d5e",
+      "net_failover.ko.gz": "b3500733f905b7198fec8b00c28151d02beec95904272d468e350561532e484b",
+      "virtio_net.ko.gz": "13d09f6397fd827e3928ab6d3727e1fab6c7f691d100b43aaf4301c0f5cd1ffc"
     }
-  },
-  "capabilities": {
-    "startupPackages": true
   }
 }

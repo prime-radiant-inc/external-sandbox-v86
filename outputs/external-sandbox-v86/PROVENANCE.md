@@ -12,16 +12,17 @@ checkout.
   No standalone license file was present in the original project.
 - The original `dev-linux` initramfs SHA-256 was
   `731ab294bcdba73b9ea8f7baf70a3d70f623cdba3d72e5e3cc6d0a2b02b19f05`.
-  It was repacked with the updated `images/init`, the four 9p modules, and
-  the three optional networking modules (`failover`, `net_failover`, `virtio_net`);
-  other archive records were preserved. Current asset hashes are in
+  The current initramfs is built from the pinned inputs by `images/build.mjs`
+  and patched with `images/init`, the four 9p modules, and the three optional
+  networking modules (`failover`, `net_failover`, `virtio_net`) by
+  `scripts/prepare-image.mjs`. Current asset hashes are in
   `images/linux/image.json`.
 - The kernel and modules come from Alpine's x86
-  `linux-virt-6.12.109-r0.apk`, SHA-256
-  `3833870669441684fe9edb2b22c79fa339ab1d1116f65a5946ccd91d6a40612f`.
+  `linux-virt-6.12.114-r0.apk`, SHA-256
+  `b08eb2e49ba459f8c3efa8e8dbf5dc076ee6cb1c4fbd2f636990f727595eb88f`.
   Its package metadata identifies `GPL-2.0-only`, origin `linux-lts`, and
-  Alpine aports commit `27ab7d9afedda2c0383cb846499d23cb2124ba40`.
-  [Alpine kernel build sources](https://gitlab.alpinelinux.org/alpine/aports/-/tree/27ab7d9afedda2c0383cb846499d23cb2124ba40/main/linux-lts)
+  Alpine aports commit `9e6466179030bcd67cb79cca4ddf7b7831d240e5`.
+  [Alpine kernel build sources](https://gitlab.alpinelinux.org/alpine/aports/-/tree/9e6466179030bcd67cb79cca4ddf7b7831d240e5/main/linux-lts)
   describe the upstream Linux source and patches.
 - The base root filesystem is Alpine 3.21.0 x86. The complete pinned package
   download URLs and hashes are in `images/sources.lock.json`; the runtime

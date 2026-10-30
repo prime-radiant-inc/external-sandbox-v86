@@ -33,7 +33,7 @@ apk --root /rootfs info -v | LC_ALL=C sort > /out/packages.txt
 # Keep the virtio-9p and optional virtio-net dependency closures.
 mkdir -p /rootfs/usr/local/lib/v86-modules
 for module in fs/netfs/netfs net/9p/9pnet net/9p/9pnet_virtio fs/9p/9p net/core/failover drivers/net/net_failover drivers/net/virtio_net; do
-    gzip -dc "/rootfs/lib/modules/6.12.109-0-virt/kernel/$module.ko.gz" > "/rootfs/usr/local/lib/v86-modules/${module##*/}.ko"
+    gzip -dc "/rootfs/lib/modules/6.12.114-0-virt/kernel/$module.ko.gz" > "/rootfs/usr/local/lib/v86-modules/${module##*/}.ko"
 done
 rm -rf /rootfs/boot /rootfs/lib/modules /rootfs/usr/lib/gcc /rootfs/usr/include /rootfs/usr/share/man /rootfs/usr/share/doc /rootfs/var/cache/apk
 # Busybox applet links normally come from package triggers, suppressed above.

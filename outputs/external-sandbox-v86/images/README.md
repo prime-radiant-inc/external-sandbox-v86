@@ -5,7 +5,7 @@
 is needed to run this image. The guest has BusyBox, Bash, Python 3, Git, and
 ripgrep.
 
-The initramfs boots Alpine x86 with Linux 6.12.109. `init` loads four kernel
+The initramfs boots Alpine x86 with Linux 6.12.114. `init` loads four kernel
 modules and mounts the server's `host9p` virtio filesystem at `/mnt` using
 `9p2000.L,cache=none`. Each named host directory appears below that mount.
 The server always supplies this filesystem, including when no directories
@@ -61,13 +61,6 @@ installed package stay as they are. It requires Docker with `linux/386` support.
 
 ## Rebuild the complete guest
 
-Alpine's mirror keeps only the current build of each package on a stable branch,
-and some inputs pinned in `sources.lock.json`, including the kernel, musl, and
-Python, are no longer available there. A complete rebuild needs those pins
-refreshed first, which upgrades the kernel and requires re-extracting
-`images/modules/`.
-
-
 ```sh
 node images/build.mjs
 # Or retain the bundled image and write elsewhere:
@@ -81,8 +74,29 @@ access to download the pinned inputs. Inputs are verified against
 installs the pinned Alpine packages, retains the four virtio-9p modules and
 three virtio-net modules, and
 writes a new kernel, initramfs, BIOS files, package inventory, and manifest.
+Run `node scripts/prepare-image.mjs` afterwards to apply `modules/` and record
+their hashes in the manifest.
 
 The kernel module files in `modules/` were extracted from the same pinned
-`linux-virt-6.12.109-r0.apk` used to build the bundled kernel. Their hashes are
+`linux-virt-6.12.114-r0.apk` used to build the bundled kernel. Their hashes are
 recorded in `linux/image.json`. No source path from the original project is
 referenced by these build scripts or the application at runtime.
+
+## Refresh the pinned packages
+
+Alpine's mirror keeps only the current build of each package on a stable branch,
+so a rebuild fails with a 404 once a pinned package has been superseded. To
+refresh the pins:
+
+1. Compare `sources.lock.json` with `APKINDEX.tar.gz` in the `main` and
+   `community` directories under `alpine/v3.21/*/x86`. Update `path`, `url`, and
+   `sha256` for each superseded package, and add any new dependencies.
+2. Remove the superseded files from `images/cache/apks`. The build installs every
+   APK in that directory.
+3. If `linux-virt` changed, update the kernel version in `images/build.mjs` and
+   the module directory in `images/build-in-container.sh`.
+4. Run `node images/build.mjs`.
+5. If `linux-virt` changed, copy the seven `.ko.gz` files named in
+   `build-in-container.sh` from `lib/modules/*-virt/kernel/` in the new APK to
+   `images/modules/`.
+6. Run `node scripts/prepare-image.mjs`.

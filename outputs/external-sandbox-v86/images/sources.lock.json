@@ -34,9 +34,9 @@
       "sha256": "ade069477faedf61e8c92f9611ceb6e91c6a919edbe69c394e42b3bc4213a54c"
     },
     {
-      "path": "apks/brotli-libs-1.1.0-r2.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/brotli-libs-1.1.0-r2.apk",
-      "sha256": "afcd02dab0ad708bc186b2795d53300b1e1ae8df535315ac98965424e2468a48"
+      "path": "apks/brotli-libs-1.1.1-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/brotli-libs-1.1.1-r0.apk",
+      "sha256": "e21bfcb61f8d2aea362073635eafe45dd5369fdcf1b60145961525a6aa8ee906"
     },
     {
       "path": "apks/busybox-1.37.0-r14.apk",
@@ -49,14 +49,14 @@
       "sha256": "b57611d3c70982f3ecf99d5eee06b24df2495e85b7026474139685dc3fedad9e"
     },
     {
-      "path": "apks/c-ares-1.34.8-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/c-ares-1.34.8-r0.apk",
-      "sha256": "a9445e7686f989f0a01f3ac5d6c98ba88e47affce96a98863c6984859b58ca3e"
+      "path": "apks/c-ares-1.34.9-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/c-ares-1.34.9-r0.apk",
+      "sha256": "fbfc0ae70f65e5793511cb142da536c251b2ff7a6b88482e8f23b5afc1fc87c6"
     },
     {
-      "path": "apks/ca-certificates-bundle-20260413-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/ca-certificates-bundle-20260413-r0.apk",
-      "sha256": "e75e5e52ea8cd5799a3ec58a224f2643ac4e715c361f49a175ec1041a17ac329"
+      "path": "apks/ca-certificates-bundle-20261020-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/ca-certificates-bundle-20261020-r0.apk",
+      "sha256": "da7d4391cbae7733b3c88749da1a5adf817d034b2f3be7ba8650fb18b141b3d9"
     },
     {
       "path": "apks/cpio-2.15-r0.apk",
@@ -144,14 +144,14 @@
       "sha256": "b5b3e41b04d8a6a3e6d7ce0dc8702dbf8e7fa87a05b387a753b1db500fe72d19"
     },
     {
-      "path": "apks/libcrypto3-3.3.7-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libcrypto3-3.3.7-r0.apk",
-      "sha256": "2aee2971cda0d81fa7d1ec51b2d1e24cc9097561e8641e00f601e538988eeed0"
+      "path": "apks/libcrypto3-3.3.7-r2.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libcrypto3-3.3.7-r2.apk",
+      "sha256": "cacc9d8048792fe8f607d0c2327891208671ae10d36a0e4533cd1cc4b23e97d0"
     },
     {
-      "path": "apks/libcurl-8.14.1-r2.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libcurl-8.14.1-r2.apk",
-      "sha256": "30f27fe93ff8577fd86a5a15278caf3968521ffc5d45531236e9968b7facb62c"
+      "path": "apks/libcurl-8.14.1-r3.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libcurl-8.14.1-r3.apk",
+      "sha256": "a936f761276974772305a91921d748cef239db92a7af5ba0b511a681acaf67e9"
     },
     {
       "path": "apks/libeconf-0.6.3-r0.apk",
@@ -159,9 +159,9 @@
       "sha256": "2948f46c148245206565744d5a0261887083fa7501bab94f852cc12fbd908445"
     },
     {
-      "path": "apks/libexpat-2.8.4-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libexpat-2.8.4-r0.apk",
-      "sha256": "b346ff085cb19dc7adeb01f5794c325ffee7e790f0542cbca1b92bd5c062f611"
+      "path": "apks/libexpat-2.9.0-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libexpat-2.9.0-r0.apk",
+      "sha256": "3226723b2b3de6876474e3f2fee9da5e544814b6cbdfab15c3973c20fc83b502"
     },
     {
       "path": "apks/libffi-3.4.7-r0.apk",
@@ -199,9 +199,9 @@
       "sha256": "ac90b9fe624ad85541aed35dbb479e301c940638c3a2e7d0e083979e6a789b4e"
     },
     {
-      "path": "apks/libssl3-3.3.7-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libssl3-3.3.7-r0.apk",
-      "sha256": "bf4a3eb8911d1e122b17c2ad2f35d5a4cade3c112092a46c957ccd30c69a27b8"
+      "path": "apks/libssl3-3.3.7-r2.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/libssl3-3.3.7-r2.apk",
+      "sha256": "390459bcb052fceb6741279010bb7ed03e6b6aea0d566869924a1f3bbf4aaf30"
     },
     {
       "path": "apks/libstdc++-14.2.0-r4.apk",
@@ -219,9 +219,9 @@
       "sha256": "b8bcd1c51b7c7fbbbfe52eec8e401045c23f486188bc878f15475218c9224f13"
     },
     {
-      "path": "apks/linux-virt-6.12.109-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/linux-virt-6.12.109-r0.apk",
-      "sha256": "3833870669441684fe9edb2b22c79fa339ab1d1116f65a5946ccd91d6a40612f"
+      "path": "apks/linux-virt-6.12.114-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/linux-virt-6.12.114-r0.apk",
+      "sha256": "b08eb2e49ba459f8c3efa8e8dbf5dc076ee6cb1c4fbd2f636990f727595eb88f"
     },
     {
       "path": "apks/mdev-conf-4.7-r0.apk",
@@ -249,14 +249,14 @@
       "sha256": "15994cf669ce82a13f4672b4a11c9f4cf0edd5aa3c8b8e2e44204e588f49f7e2"
     },
     {
-      "path": "apks/musl-1.2.5-r11.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/musl-1.2.5-r11.apk",
-      "sha256": "9875e26e9683fba40d9c380d5d28a9bcd1b04af7de6c3945b534568fe40fc69b"
+      "path": "apks/musl-1.2.5-r12.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/musl-1.2.5-r12.apk",
+      "sha256": "b320b03c2623141c91280a160403fa3c9a15fed31fd028f4b9a9c56a2c443bf9"
     },
     {
-      "path": "apks/musl-dev-1.2.5-r11.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/musl-dev-1.2.5-r11.apk",
-      "sha256": "9f49e377693ab87bc0acfcd0985e55d9f4f6f5cbe7b744a15091330e8bc03edf"
+      "path": "apks/musl-dev-1.2.5-r12.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/musl-dev-1.2.5-r12.apk",
+      "sha256": "83227eec998fdb012e359255d3638a5b0c56e57384d03ed0ef981404c1d84d82"
     },
     {
       "path": "apks/ncurses-terminfo-base-6.5_p20241006-r3.apk",
@@ -269,29 +269,29 @@
       "sha256": "92c84ee10d4d9b112be28b727d453ac12803b507a1ad68a559cbb5e6478d8720"
     },
     {
-      "path": "apks/pcre2-10.43-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/pcre2-10.43-r0.apk",
-      "sha256": "1718248c8eecc3bdbd28bc73698b0698514e6914915277d58419a7d6eac9bd1c"
+      "path": "apks/pcre2-10.43-r1.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/pcre2-10.43-r1.apk",
+      "sha256": "e810baaf813fea4f55f0f2ebf942d1139625a337abb7e6b0f6b59d1310a67f88"
     },
     {
-      "path": "apks/pyc-3.12.14-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/pyc-3.12.14-r0.apk",
-      "sha256": "30a18e7ed437bee526b56c8123f27bec61a96d95a7cbb26195e82cc805f6aaf4"
+      "path": "apks/pyc-3.12.16-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/pyc-3.12.16-r0.apk",
+      "sha256": "4b6f1a8e470ba79e9e68f6f15364a1f184c33f687b0a5f4255530e151c811f51"
     },
     {
-      "path": "apks/python3-3.12.14-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/python3-3.12.14-r0.apk",
-      "sha256": "7acf4560dc058e0744d290aed1e41ddb283134e0b9535cfb86f5b9ab5ba13393"
+      "path": "apks/python3-3.12.16-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/python3-3.12.16-r0.apk",
+      "sha256": "bcde75e284cd633f65b5b42d8f6e85d81cbb0ea7734af2a1e84661eda1b90fa7"
     },
     {
-      "path": "apks/python3-pyc-3.12.14-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/python3-pyc-3.12.14-r0.apk",
-      "sha256": "1ee3d5259aaee157f3f6200452d65b3c463b722a62836cc2d52b5f4ccb5ec7b4"
+      "path": "apks/python3-pyc-3.12.16-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/python3-pyc-3.12.16-r0.apk",
+      "sha256": "4bef925c87e50862c9bed66bb8f895c6d34e0531b13be316ec8de7e37a46238d"
     },
     {
-      "path": "apks/python3-pycache-pyc0-3.12.14-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/python3-pycache-pyc0-3.12.14-r0.apk",
-      "sha256": "8c5f4e53176330fd1a1a14fafdd7875c90b2c003c3d18c3c9be3cd8e30c70008"
+      "path": "apks/python3-pycache-pyc0-3.12.16-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/python3-pycache-pyc0-3.12.16-r0.apk",
+      "sha256": "36c33be7cefcc1f5b57961272820db1b60b985fa3cd1cafe853c175e81e2abbb"
     },
     {
       "path": "apks/readline-8.2.13-r0.apk",
@@ -324,9 +324,9 @@
       "sha256": "ff325286a9be3c67d4e643b504688f9427f6906aa8e8cc3ac13b88e978951ee4"
     },
     {
-      "path": "apks/zlib-1.3.2-r0.apk",
-      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/zlib-1.3.2-r0.apk",
-      "sha256": "947490707e23a26f5b72ba3d7321dee4e0177b84a59abe6b8c0cc82a1a840bb7"
+      "path": "apks/zlib-1.3.2-r1.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/zlib-1.3.2-r1.apk",
+      "sha256": "9574b241177363f4c6af34298df4b6d42bc95a090e58b91e3606d9c4443a4191"
     },
     {
       "path": "apks/zstd-libs-1.5.6-r2.apk",
