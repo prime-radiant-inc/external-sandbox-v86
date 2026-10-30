@@ -44,7 +44,7 @@ function responseEvents(id: string, item: object): string {
 
 // This is the real Codex CLI and real VM. The only simulated component is the
 // Responses provider: deterministic SSE responses replace remote inference.
-test('Codex 0.154.0 exec-server executes in v86 with live RO and RW mounts', { timeout: 120_000 }, async t => {
+test('Codex 0.164.0 exec-server executes in v86 with live RO and RW mounts', { timeout: 120_000 }, async t => {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'v86-codex-cli-'));
   const root = await fs.realpath(temporary);
   const codexState = path.join(root, 'codex-state');
@@ -69,12 +69,12 @@ test('Codex 0.154.0 exec-server executes in v86 with live RO and RW mounts', { t
     version = (await run(codex, ['--version'], { cwd: rw, env: childEnv, timeout: 5_000 })).stdout.trim();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      t.skip('Install Codex 0.154.0 or set CODEX_CLI_BIN to run this compatibility test');
+      t.skip('Install Codex 0.164.0 or set CODEX_CLI_BIN to run this compatibility test');
       return;
     }
     throw error;
   }
-  assert.equal(version, 'codex-cli 0.154.0', 'This integration test pins the experimental exec-server protocol');
+  assert.equal(version, 'codex-cli 0.164.0', 'This integration test pins the experimental exec-server protocol');
 
   await fs.writeFile(path.join(ro, 'input.txt'), 'live readonly fixture\n');
 
@@ -169,7 +169,7 @@ test('Codex 0.154.0 exec-server executes in v86 with live RO and RW mounts', { t
   const providerPort = (provider.address() as { port: number }).port;
 
   await fs.writeFile(path.join(codexState, 'config.toml'), `
-model = "gpt-5.4"
+model = "gpt-5.5"
 model_provider = "v86_fixture"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
