@@ -108,7 +108,20 @@ Timeouts and output limits kill the guest process group. The corresponding flag 
 
 ## Streaming API and shared clients
 
-WebSocket clients connect to `ws://127.0.0.1:8686/exec/ws`, then send a `start` message. Each connection runs one process and supports streaming stdout/stderr, incremental stdin, EOF, and cancellation. See the [WebSocket protocol](docs/streaming.md) for flow control, errors, and a message-by-message example.
+WebSocket clients connect to `ws://127.0.0.1:8686/exec/ws`, then send a `start` message. Each connection runs one process and supports streaming stdout/stderr, incremental stdin, EOF, and cancellation. Message shapes, flow control, acknowledgements, and error rules are defined in section 3 of the shared [protocol specification](https://github.com/prime-radiant-inc/external-sandbox/blob/main/SPEC.md). This server applies the following bounds:
+
+| Resource | Limit |
+| --- | --- |
+| Concurrent guest processes | 16 across HTTP and WebSockets |
+| WebSocket message | 256 KiB |
+| Decoded stdin chunk | 32 KiB |
+| Pending stdin | 256 KiB / 256 messages |
+| Pending encoded WebSocket output, including startup | 1 MiB |
+| Combined command output | 4 MiB default, up to 16 MiB |
+| Command timeout | 30 seconds API default, up to five minutes |
+| First start message | Ten seconds after connection |
+
+Origin and Host checks apply during WebSocket upgrade, and the server stays bound to `127.0.0.1`.
 
 The Python streaming client, Claude Code shell-prefix wrappers, and their tests now live in the shared [external-sandbox/claude-code](https://github.com/prime-radiant-inc/external-sandbox/tree/main/claude-code) directory. Follow that guide for client installation, Claude environment settings, temporary-directory setup, and examples for either backend. This repository and npm package provide the server; the former `external-sandbox-v86-exec` companion command has been removed in favor of the shared client.
 
