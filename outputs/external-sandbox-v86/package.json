@@ -30,6 +30,7 @@
     "images/modules/*.ko.gz",
     "images/init",
     "images/build.mjs",
+    "images/add-package.mjs",
     "images/build-in-container.sh",
     "images/sources.lock.json",
     "images/README.md",

@@ -4,7 +4,7 @@ Use `--packages` to install software once during each VM startup:
 
 ```sh
 external-sandbox-v86 --proxy-config /path/to/proxy-alpine.json \
-  --packages uv,jq,ripgrep --mount-rw "project=$PWD"
+  --packages uv,jq --mount-rw "project=$PWD"
 ```
 
 For a source checkout, use `node dist/cli.js` and `--proxy-config examples/proxy-alpine.json`. The minimal policy is:
@@ -17,7 +17,7 @@ For a source checkout, use `node dist/cli.js` and `--proxy-config examples/proxy
 }
 ```
 
-`--packages uv,jq --packages ripgrep` and `--packages=uv,jq,ripgrep` are equivalent. Duplicate names are removed. Up to 64 plain Alpine package names are accepted; flags, URLs, local APK paths, whitespace, and version selectors are rejected. No package names are evaluated as shell code.
+`--packages uv --packages jq` and `--packages=uv,jq` are equivalent. Duplicate names are removed. Up to 64 plain Alpine package names are accepted; flags, URLs, local APK paths, whitespace, and version selectors are rejected. No package names are evaluated as shell code.
 
 An explicit `--proxy-config` is required. Package setup uses the same host proxy policy as ordinary guest commands, without adding implicit allow rules. The example permits only Alpine package downloads. Additional registries need their own allow rules; installing npm or uv does not authorize their traffic.
 

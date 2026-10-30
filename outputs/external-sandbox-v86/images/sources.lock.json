@@ -299,6 +299,11 @@
       "sha256": "38274e9349a07853ce617918880c17796ab96b71e238481046ad4e185666333b"
     },
     {
+      "path": "apks/ripgrep-14.1.1-r0.apk",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86/ripgrep-14.1.1-r0.apk",
+      "sha256": "11dee3a59befbf6fd9882b756c0bb8bb0361f46e2ae9bcb4fedf8e76abfbb559"
+    },
+    {
       "path": "apks/scanelf-1.3.8-r1.apk",
       "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86/scanelf-1.3.8-r1.apk",
       "sha256": "a9035c765ddc9cb2d8749a0be360f3f59682295df0094b4dc3db09b8b3fbe1aa"

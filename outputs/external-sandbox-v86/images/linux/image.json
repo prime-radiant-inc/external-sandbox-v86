@@ -21,8 +21,8 @@
     },
     "initrd": {
       "path": "initrd.img",
-      "sha256": "94cb5cd304c3e5c5ea3e4c312267b389ecbcd09107b437281947d3f3b76a0fa5",
-      "size": 26193404
+      "sha256": "981186d99c1d8dc0a62c59d0d33bae045f84d90a110eed8725bc1671f047d39c",
+      "size": 27527411
     }
   },
   "build": {
@@ -30,7 +30,7 @@
     "kernel": "6.12.109-r0",
     "agentSource": "guest/agent/agent.c",
     "agentSourceSha256": "bacee19f548cbbc7b7e52144a81c70eabea0a8691a2a778c6608b2f1bb930739",
-    "sourcesLockSha256": "964174a9dcba2d7e9e996f2d7c4592e526af12d2d28dac021ab081f3894d4299",
+    "sourcesLockSha256": "4a7d44dbe3918fd006ba605bee5cd1657eebe6ae9de36412e71c3b0f33e3a055",
     "initSourceSha256": "e9fb260f3b4b23b48af7e382ca7e79fc380e6032b9556f3603c5e0ac7bd69f19",
     "hostFilesystem": "virtio-9p/9p2000.L at /mnt",
     "modules": {

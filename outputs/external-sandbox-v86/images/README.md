@@ -2,7 +2,8 @@
 
 `linux/image.json` describes the ready-to-boot image. It pins v86 0.5.458,
 512 MiB RAM, asset sizes, and SHA-256 checksums. No Docker or native Linux VM
-is needed to run this image. The guest has BusyBox, Bash, Python 3, and Git.
+is needed to run this image. The guest has BusyBox, Bash, Python 3, Git, and
+ripgrep.
 
 The initramfs boots Alpine x86 with Linux 6.12.109. `init` loads four kernel
 modules and mounts the server's `host9p` virtio filesystem at `/mnt` using
@@ -46,7 +47,26 @@ and hardlinks, and refreshes the image manifest. Repeated runs with unchanged
 inputs produce identical bytes. It does not compile changes to `agent.c`;
 use the full rebuild below for those changes.
 
+## Add a package to the bundled guest
+
+```sh
+node images/add-package.mjs apks/NAME-VERSION.apk
+```
+
+The package must be pinned in `sources.lock.json`, and its dependencies must
+already be in the image. This tool unpacks the bundled initramfs in Docker with
+`--network none`, installs that one package, repacks the initramfs, and
+refreshes the package inventory and manifest. The kernel and every other
+installed package stay as they are. It requires Docker with `linux/386` support.
+
 ## Rebuild the complete guest
+
+Alpine's mirror keeps only the current build of each package on a stable branch,
+and some inputs pinned in `sources.lock.json`, including the kernel, musl, and
+Python, are no longer available there. A complete rebuild needs those pins
+refreshed first, which upgrades the kernel and requires re-extracting
+`images/modules/`.
+
 
 ```sh
 node images/build.mjs
