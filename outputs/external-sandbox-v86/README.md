@@ -108,7 +108,7 @@ Timeouts and output limits kill the guest process group. The corresponding flag 
 
 ## Streaming API and shared clients
 
-WebSocket clients connect to `ws://127.0.0.1:8686/exec/ws`, then send a `start` message. Each connection runs one process and supports streaming stdout/stderr, incremental stdin, EOF, and cancellation. Message shapes, flow control, acknowledgements, and error rules are defined in section 3 of the shared [protocol specification](https://github.com/prime-radiant-inc/external-sandbox/blob/main/SPEC.md). This server applies the following bounds:
+WebSocket clients connect to `ws://127.0.0.1:8686/exec/ws`, then send a `start` message. Each connection runs one process and supports streaming stdout/stderr, incremental stdin, EOF, and cancellation. Message shapes, flow control, acknowledgements, and error rules are defined in section 3 of the shared [protocol specification](https://github.com/prime-radiant-inc/external-sandbox/blob/main/PROTOCOL.md). This server applies the following bounds:
 
 | Resource | Limit |
 | --- | --- |
