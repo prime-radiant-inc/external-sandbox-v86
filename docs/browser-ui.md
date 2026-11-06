@@ -36,19 +36,19 @@ The real-VM test `test/integration/browser-ui.test.ts` exercises browser sockets
 
 Edit the sibling `external-sandbox-ui` repository and commit its changes before updating this server. The copied bundle is generated from a Git tag or commit; do not edit files in `src/ui/shared/` directly. Its `manifest.json` records the UI version, full source commit, and SHA-256 of every copied asset, test, and package metadata file.
 
-Starting in this application's `outputs/external-sandbox-v86` directory, update or verify the pinned bundle with:
+Starting in this repository's root directory, update or verify the pinned bundle with:
 
 ```sh
-cd ../../../external-sandbox-ui
-uv run python scripts/sync.py --ref v0.3.0 --dest ../external-sandbox-v86/outputs/external-sandbox-v86/src/ui/shared
-uv run python scripts/sync.py --check --dest ../external-sandbox-v86/outputs/external-sandbox-v86/src/ui/shared
-cd ../external-sandbox-v86/outputs/external-sandbox-v86
+cd ../external-sandbox-ui
+uv run python scripts/sync.py --ref v0.3.0 --dest ../external-sandbox-v86/src/ui/shared
+uv run python scripts/sync.py --check --dest ../external-sandbox-v86/src/ui/shared
+cd ../external-sandbox-v86
 npm run check
 npm test
 npm run build
 ```
 
-Use the desired release tag or commit instead of `v0.2.0` for a future update. `--check` compares the copy with its recorded source commit without changing files; adding `--ref` requires that specific revision. Commit the updated bundle in this server repository after its checks pass. Ordinary development builds need only this checkout; they do not need the sibling UI repository.
+Use the desired release tag or commit instead of `v0.3.0` for a future update. `--check` compares the copy with its recorded source commit without changing files; adding `--ref` requires that specific revision. Commit the updated bundle in this server repository after its checks pass. Ordinary development builds need only this checkout; they do not need the sibling UI repository.
 
 `npm run check:ui` checks the complete local bundle against the manifest without Git or network access. The build performs the same verification before copying runtime assets, `package.json`, and the manifest into `dist/ui/shared/`. The manifest describes the complete source bundle; shared tests are deliberately absent from the compiled runtime. The npm tarball also includes the complete `src/ui/shared/` bundle so its shipped sources can be checked and rebuilt independently of the UI repository.
 

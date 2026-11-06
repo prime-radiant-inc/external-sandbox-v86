@@ -72,3 +72,10 @@ project from Remote Sandbox to External Sandbox. Environment variables use the
 `EXTERNAL_SANDBOX_` prefix and the shared UI bundle is `external-sandbox-ui`
 0.3.0. Wire protocol, default ports and behaviour are unchanged. Names, paths
 and hashes recorded above describe earlier states and are preserved as written.
+
+## Package at repository root — 6 November 2026
+
+The application moved from `outputs/external-sandbox-v86` to the repository
+root. Earlier verification reports and the demo moved from `outputs/` to
+`verification/`, and the experiments in `work/` moved to
+`verification/experiments/`. File contents are unchanged by the move.
