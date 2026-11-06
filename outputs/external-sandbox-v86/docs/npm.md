@@ -66,6 +66,6 @@ npx external-sandbox-v86@0.3.0 --mount "project=$PWD"
 npm install --global external-sandbox-v86@0.3.0
 ```
 
-The current name has not been reserved or checked for registry availability. Before publishing, choose the project's source license and review the bundled components' notices/source distribution, then deliberately remove `private`. The package does not assign a new license to its third-party guest components.
+The current name has not been reserved or checked for registry availability. The project's own source is licensed under Apache 2.0 (`LICENSE`). Before publishing, review the bundled components' notices/source distribution, then deliberately remove `private`. The package does not assign a new license to its third-party guest components.
 
 References: [npm pack](https://docs.npmjs.com/cli/v11/commands/npm-pack/), [npm exec/npx](https://docs.npmjs.com/cli/v11/commands/npm-exec/), and [package files/bin/private](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/).
