@@ -30,10 +30,13 @@ checkout.
   source-origin metadata is also retained inside the guest's APK database
   (`/lib/apk/db/installed`). Alpine packages retain their respective upstream
   licenses; the application does not relicense them.
+  `images/THIRD-PARTY-NOTICES.md` lists each bundled package with its declared
+  license, and `images/licenses/` holds the license texts.
 - SeaBIOS and VGA BIOS are the binaries from
   [v86 revision d96be774e549a83371b038b86e819804c96b921f](https://github.com/copy/v86/tree/d96be774e549a83371b038b86e819804c96b921f/bios).
-  Their upstream projects are [SeaBIOS](https://www.seabios.org/) and
-  [VGABIOS](https://www.nongnu.org/vgabios/).
+  v86's `fetch-and-build-seabios.sh` builds both from
+  [SeaBIOS](https://www.seabios.org/) `rel-1.16.2`: `seabios.bin` is SeaBIOS
+  and `vgabios.bin` is its SeaVGABIOS. SeaBIOS is licensed LGPL-3.0.
 - The JavaScript/WebAssembly emulator is npm package `v86` version 0.5.458.
   Its BSD-style two-clause license is distributed by the npm package and
   reproduced in `images/V86-LICENSE`.

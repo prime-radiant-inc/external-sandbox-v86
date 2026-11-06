@@ -191,3 +191,7 @@ node --import tsx --test --test-concurrency=1 test/integration/*.test.ts
 ```
 
 Without these settings, only the external-client scenarios are skipped. Setting a path explicitly opts into the checks; an invalid or missing file fails the test. The server's own HTTP, WebSocket, mount, and proxy tests remain available without the shared checkout.
+
+## License
+
+Apache 2.0; see [LICENSE](LICENSE). The bundled guest image contains the Linux kernel, SeaBIOS, and Alpine Linux packages under their own licenses, including GPL and LGPL. [images/THIRD-PARTY-NOTICES.md](images/THIRD-PARTY-NOTICES.md) lists each component, its license, and where to get its source, and the license texts are in [images/licenses](images/licenses).

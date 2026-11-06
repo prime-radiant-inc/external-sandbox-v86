@@ -43,6 +43,9 @@
     "images/sources.lock.json",
     "images/README.md",
     "images/V86-LICENSE",
+    "images/THIRD-PARTY-NOTICES.md",
+    "images/licenses/*.txt",
+    "images/notices.mjs",
     "guest/agent/agent.c",
     "guest/agent/Makefile",
     "guest/agent/README.md",
@@ -63,11 +66,12 @@
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/copy-ui-assets.mjs",
     "start": "node dist/cli.js",
     "dev": "node --import tsx src/cli.ts",
-    "check": "tsc --noEmit && npm run check:ui",
+    "check": "tsc --noEmit && npm run check:ui && npm run check:notices",
     "test": "node --import tsx --test test/*.test.ts test/*.test.mjs",
     "test:proxy": "node --import tsx --test test/proxy-*.test.ts test/managed-proxy.test.ts test/wisp-relay.test.ts test/v86-network-guard.test.ts",
     "test:integration": "node --import tsx --test test/integration/*.test.ts",
-    "check:ui": "node scripts/copy-ui-assets.mjs --check"
+    "check:ui": "node scripts/copy-ui-assets.mjs --check",
+    "check:notices": "node images/notices.mjs --check"
   },
   "dependencies": {
     "node-forge": "1.4.0",

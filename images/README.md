@@ -58,6 +58,7 @@ already be in the image. This tool unpacks the bundled initramfs in Docker with
 `--network none`, installs that one package, repacks the initramfs, and
 refreshes the package inventory and manifest. The kernel and every other
 installed package stay as they are. It requires Docker with `linux/386` support.
+Afterwards, refresh the third-party notices as described below.
 
 ## Rebuild the complete guest
 
@@ -75,7 +76,8 @@ installs the pinned Alpine packages, retains the four virtio-9p modules and
 three virtio-net modules, and
 writes a new kernel, initramfs, BIOS files, package inventory, and manifest.
 Run `node scripts/prepare-image.mjs` afterwards to apply `modules/` and record
-their hashes in the manifest.
+their hashes in the manifest, then refresh the third-party notices as described
+below.
 
 The kernel module files in `modules/` were extracted from the same pinned
 `linux-virt-6.12.114-r0.apk` used to build the bundled kernel. Their hashes are
@@ -100,3 +102,24 @@ refresh the pins:
    `build-in-container.sh` from `lib/modules/*-virt/kernel/` in the new APK to
    `images/modules/`.
 6. Run `node scripts/prepare-image.mjs`.
+7. Run `node images/notices.mjs`.
+
+## Third-party notices
+
+`THIRD-PARTY-NOTICES.md` lists the firmware, kernel, and every Alpine package
+in the image with its license and where to get its source, and `licenses/`
+holds each license text named by SPDX identifier. Both ship in the npm package. Regenerate the notices after
+any image change:
+
+```sh
+node images/notices.mjs
+```
+
+The script reads each package's license, origin, and aports commit from the
+APK database inside `linux/initrd.img`; packages pinned from Alpine's
+`community` repository in `sources.lock.json` link to `community/`, all
+others to `main/`. It fails if a license has no text in `licenses/` or a
+text is no longer used; texts come from the
+[SPDX license list](https://github.com/spdx/license-list-data/tree/main/text).
+`npm run check` runs it with `--check` and fails when the notices no longer
+match the image.

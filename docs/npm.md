@@ -63,7 +63,7 @@ npm pack --pack-destination /path/to/output-directory
 
 `npm pack` does not create the destination directory. `prepack` builds `dist/`. The explicit `files` allowlist includes runtime assets and selected source/rebuild documentation. It excludes dependencies, test scratch space, download caches, environment files, local proxy configurations, and generated archives. `package-lock.json` is retained in the repository; the three runtime dependency versions in `package.json` are pinned exactly.
 
-The project's own source is licensed under Apache 2.0 (`LICENSE`). The package does not assign a new license to its third-party guest components; see [provenance](../PROVENANCE.md) for their sources and licenses.
+The project's own source is licensed under Apache 2.0 (`LICENSE`). The package does not assign a new license to its third-party guest components: [`images/THIRD-PARTY-NOTICES.md`](../images/THIRD-PARTY-NOTICES.md) lists each one with its license and source location, the texts are in `images/licenses/`, and [provenance](../PROVENANCE.md) records where each came from.
 
 ## Releasing
 
