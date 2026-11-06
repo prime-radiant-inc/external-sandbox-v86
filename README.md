@@ -10,7 +10,7 @@ The bundled guest is 32-bit Alpine Linux with Bash, Python 3, Git, ripgrep, and 
 
 ## Run
 
-An unpublished npm tarball can also be run directly with `npx`, including the bundled Linux image; no source build is needed after installation. See [npm installation and npx](docs/npm.md) for local archive, global install, and streaming client instructions.
+The npm package can also be run directly with `npx external-sandbox-v86`, including the bundled Linux image; no source build is needed. See [npm installation and npx](docs/npm.md) for global install, local archive, streaming client, and release instructions.
 
 Requirements: Node.js 22 or later and npm. A prebuilt guest image is included. Install and build first:
 

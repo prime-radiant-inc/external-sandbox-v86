@@ -1,10 +1,17 @@
 {
   "name": "external-sandbox-v86",
   "version": "0.3.0",
-  "private": true,
   "type": "module",
   "description": "Local shell sandbox with v86 Linux, live directory mounts, streaming execution, and managed HTTP egress",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prime-radiant-inc/external-sandbox-v86.git"
+  },
+  "homepage": "https://github.com/prime-radiant-inc/external-sandbox-v86#readme",
+  "bugs": {
+    "url": "https://github.com/prime-radiant-inc/external-sandbox-v86/issues"
+  },
   "os": [
     "darwin",
     "linux"
