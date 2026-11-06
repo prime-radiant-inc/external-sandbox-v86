@@ -2,6 +2,8 @@
 
 A Node.js HTTP JSON API that executes Bash commands inside a Linux VM running in v86/WebAssembly. Selected host directories are mounted live over 9p: guest reads see host files and writes to read-write mounts change them immediately. There is no import/export step and no Docker dependency at runtime.
 
+This is the v86 backend for [External Sandbox](https://github.com/prime-radiant-inc/external-sandbox), which holds the shared protocol specification, conformance tests, clients, and setup guides for Claude Code, Codex, and Pi.
+
 Use `POST /exec` for a buffered JSON response, or WebSocket `/exec/ws` for live stdout/stderr and incremental stdin. The Python client and Claude Code wrapper use the streaming endpoint. Codex connects to `/codex` using its exec-server protocol for shell execution and filesystem operations, including `apply_patch`.
 
 The bundled guest is 32-bit Alpine Linux with Bash, Python 3, Git, ripgrep, and BusyBox. Networking is off by default. Optional managed HTTP(S) egress applies host and IP rules and substitutes placeholder tokens with host-side API keys. Commands run as guest UID/GID 1000. Node runs on the host; the base guest image does not include Node/npm. Use `--packages` to install additional Alpine tools when the VM starts.
