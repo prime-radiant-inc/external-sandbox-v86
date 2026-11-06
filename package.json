@@ -74,7 +74,7 @@
     "check:notices": "node images/notices.mjs --check"
   },
   "dependencies": {
-    "node-forge": "1.4.0",
+    "node-forge": "^1.4.3",
     "v86": "0.5.458",
     "ws": "8.21.3"
   },
