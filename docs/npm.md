@@ -47,7 +47,7 @@ Use the explicit `--package` form for a local tarball. Passing the archive path 
 
 ## Streaming client and Claude Code
 
-The npm package provides the `external-sandbox-v86` server command. Shell clients and Claude Code wrappers are maintained once in [external-sandbox/claude-code](https://github.com/prime-radiant-inc/external-sandbox/tree/main/claude-code), with shared setup instructions and tests for both backends. The previous `external-sandbox-v86-exec` command and bundled client scripts have been removed; use the shared Python client or prefix wrapper with `EXTERNAL_SANDBOX_API_URL=http://127.0.0.1:8686`.
+The npm package provides the `external-sandbox-v86` server command. Shell clients and Claude Code wrappers are maintained once in [external-sandbox/claude-code](https://github.com/prime-radiant-inc/external-sandbox/tree/main/claude-code), with shared setup instructions and tests for both backends. Use the shared Python client or prefix wrapper with `EXTERNAL_SANDBOX_API_URL=http://127.0.0.1:8686`.
 
 Mount the project with `--preserve-paths --mount "project=$PWD"` when Claude needs its host working-directory path to work inside the VM. The shared guide covers the Claude process's shell prefix and temporary-directory settings.
 

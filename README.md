@@ -145,7 +145,7 @@ WebSocket clients connect to `ws://127.0.0.1:8686/exec/ws`, then send a `start` 
 
 Origin and Host checks apply during WebSocket upgrade, and the server stays bound to `127.0.0.1`.
 
-The Python streaming client, Claude Code shell-prefix wrappers, and their tests now live in the shared [external-sandbox/claude-code](https://github.com/prime-radiant-inc/external-sandbox/tree/main/claude-code) directory. Follow that guide for client installation, Claude environment settings, temporary-directory setup, and examples for either backend. This repository and npm package provide the server; the former `external-sandbox-v86-exec` companion command has been removed in favor of the shared client.
+The Python streaming client, Claude Code shell-prefix wrappers, and their tests live in the shared [external-sandbox/claude-code](https://github.com/prime-radiant-inc/external-sandbox/tree/main/claude-code) directory. Follow that guide for client installation, Claude environment settings, temporary-directory setup, and examples for either backend. This repository and npm package provide the server.
 
 For Claude Code, start this backend with its project mounted at the same absolute path inside the VM:
 
