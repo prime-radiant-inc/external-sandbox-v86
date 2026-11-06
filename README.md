@@ -4,15 +4,35 @@ A Node.js HTTP JSON API that executes Bash commands inside a Linux VM running in
 
 This is the v86 backend for [External Sandbox](https://github.com/prime-radiant-inc/external-sandbox), which holds the shared protocol specification, conformance tests, clients, and setup guides for Claude Code, Codex, and Pi.
 
+## Quick start
+
+Requires Node.js 22 or later on macOS or Linux. From the directory you want to share with the VM:
+
+```sh
+npx external-sandbox-v86 --mount "project=$PWD"
+```
+
+The first run downloads the package, about 36 MB including the Linux image. Once it prints `Listening on http://127.0.0.1:8686`, run a command inside the VM from another terminal:
+
+```sh
+curl -s http://127.0.0.1:8686/exec \
+  -H 'Content-Type: application/json' \
+  -d '{"command": "uname -m && ls"}'
+```
+
+Commands start in `/mnt/project`, which is your directory, live and writable. Open <http://127.0.0.1:8686/> for a browser terminal. Stop the server with Ctrl-C.
+
+## How it works
+
 Use `POST /exec` for a buffered JSON response, or WebSocket `/exec/ws` for live stdout/stderr and incremental stdin. The Python client and Claude Code wrapper use the streaming endpoint. Codex connects to `/codex` using its exec-server protocol for shell execution and filesystem operations, including `apply_patch`.
 
 The bundled guest is 32-bit Alpine Linux with Bash, Python 3, Git, ripgrep, and BusyBox. Networking is off by default. Optional managed HTTP(S) egress applies host and IP rules and substitutes placeholder tokens with host-side API keys. Commands run as guest UID/GID 1000. Node runs on the host; the base guest image does not include Node/npm. Use `--packages` to install additional Alpine tools when the VM starts.
 
 ## Run
 
-The npm package can also be run directly with `npx external-sandbox-v86`, including the bundled Linux image; no source build is needed. See [npm installation and npx](docs/npm.md) for global install, local archive, streaming client, and release instructions.
+The [quick start](#quick-start) runs the published npm package; replace `node dist/cli.js` with `npx external-sandbox-v86` in the examples below to do the same. See [npm installation and npx](docs/npm.md) for global install, local archive, streaming client, and release instructions.
 
-Requirements: Node.js 22 or later and npm. A prebuilt guest image is included. Install and build first:
+To run from a source checkout instead you need Node.js 22 or later and npm. A prebuilt guest image is included. Install and build first:
 
 ```sh
 npm ci
