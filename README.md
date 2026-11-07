@@ -1,5 +1,11 @@
 # external-sandbox-v86
 
+[![GitHub repo](https://img.shields.io/badge/github-repo-green)](https://github.com/prime-radiant-inc/external-sandbox-v86)
+[![npm](https://img.shields.io/npm/v/external-sandbox-v86.svg)](https://www.npmjs.com/package/external-sandbox-v86)
+[![Changelog](https://img.shields.io/github/v/release/prime-radiant-inc/external-sandbox-v86?include_prereleases&label=changelog)](https://github.com/prime-radiant-inc/external-sandbox-v86/releases)
+[![Tests](https://github.com/prime-radiant-inc/external-sandbox-v86/workflows/Test/badge.svg)](https://github.com/prime-radiant-inc/external-sandbox-v86/actions?query=workflow%3ATest)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/prime-radiant-inc/external-sandbox-v86/blob/main/LICENSE)
+
 A Node.js HTTP JSON API that executes Bash commands inside a Linux VM running in v86/WebAssembly. Selected host directories are mounted live over 9p: guest reads see host files and writes to read-write mounts change them immediately. There is no import/export step and no Docker dependency at runtime.
 
 This is the v86 backend for [External Sandbox](https://github.com/prime-radiant-inc/external-sandbox), which holds the shared protocol specification, conformance tests, clients, and setup guides for Claude Code, Codex, and Pi.
