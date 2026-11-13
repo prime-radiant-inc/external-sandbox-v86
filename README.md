@@ -2,7 +2,6 @@
 
 [![GitHub repo](https://img.shields.io/badge/github-repo-green)](https://github.com/prime-radiant-inc/external-sandbox-v86)
 [![npm](https://img.shields.io/npm/v/external-sandbox-v86.svg)](https://www.npmjs.com/package/external-sandbox-v86)
-[![Changelog](https://img.shields.io/github/v/release/prime-radiant-inc/external-sandbox-v86?include_prereleases&label=changelog)](https://github.com/prime-radiant-inc/external-sandbox-v86/releases)
 [![Tests](https://github.com/prime-radiant-inc/external-sandbox-v86/workflows/Test/badge.svg)](https://github.com/prime-radiant-inc/external-sandbox-v86/actions?query=workflow%3ATest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/prime-radiant-inc/external-sandbox-v86/blob/main/LICENSE)
 
