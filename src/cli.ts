@@ -2,7 +2,7 @@
 import { ShellVM } from './vm.js';
 import { parseServerOptions } from './cli-options.js';
 import { createApiServer } from './http.js';
-import { loadProxyPolicy } from './network/proxy-config.js';
+import { startupProxyPolicy } from './network/proxy-config.js';
 import { startManagedProxy } from './network/managed-proxy.js';
 
 const HELP = `external-sandbox-v86 — a local JSON shell API inside a Linux VM
@@ -18,6 +18,8 @@ Usage: external-sandbox-v86 [options] [directory ...]
   --port PORT         Local HTTP port (default: 8686; 0 selects a free port).
   --memory MIB        Guest RAM, 128–2048 MiB (default: 512).
   --image PATH        Guest image directory (default: bundled images/linux).
+  --proxy             Enable managed HTTP(S) egress with every destination
+                       denied; add allow rules on the /proxy page.
   --proxy-config FILE Enable managed HTTP(S) egress with host-side policy and
                        credential substitution from a JSON configuration.
   --packages LIST     Install comma-separated Alpine packages at boot (repeatable).
@@ -35,9 +37,9 @@ Mount modes appear in /mounts. Networking is off by default.
 `;
 
 async function main() {
-  const { help, port, memoryMiB, image, mounts, proxyConfig, verbose, packages } = await parseServerOptions(process.argv.slice(2));
+  const { help, port, memoryMiB, image, mounts, proxy: proxyFlag, proxyConfig, verbose, packages } = await parseServerOptions(process.argv.slice(2));
   if (help) { process.stdout.write(HELP); return; }
-  const policy = proxyConfig ? await loadProxyPolicy(proxyConfig) : undefined;
+  const policy = await startupProxyPolicy({ proxy: proxyFlag, proxyConfig });
   const proxy = policy ? await startManagedProxy(policy) : undefined;
   let vm: ShellVM;
   try {
@@ -70,6 +72,7 @@ async function main() {
     if (proxy) {
       console.error(`Proxy controls: http://127.0.0.1:${actualPort}/proxy`);
       console.error('Managed HTTP(S) egress enabled; direct guest connections are blocked.');
+      if (!proxyConfig) console.error('Every destination is denied until you add allow rules on the proxy controls page.');
     }
     for (const mount of mounts) console.error(`  ${mount.hostPath} -> /mnt/${mount.name} (${mount.mode ?? 'rw'})${mount.preservedPaths ? ' (original paths also available)' : ''}`);
   } catch (error) { await stop(); throw error; }

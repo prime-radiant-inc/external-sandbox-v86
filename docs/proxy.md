@@ -1,6 +1,6 @@
 # Managed HTTP and HTTPS egress
 
-The proxy runs inside the same Node.js process as the API and v86. There is no separate proxy daemon, Docker runtime, OpenSSL command, or host firewall setup. Networking remains disabled unless `--proxy-config` is supplied.
+The proxy runs inside the same Node.js process as the API and v86. There is no separate proxy daemon, Docker runtime, OpenSSL command, or host firewall setup. Networking remains disabled unless `--proxy` or `--proxy-config` is supplied.
 
 The host owns the allowed destinations and real credentials. Guest programs receive ordinary proxy settings, a public CA certificate, and any configured placeholder tokens. They can use HTTP clients and SDKs without receiving the real API keys.
 
@@ -18,6 +18,14 @@ node dist/cli.js --proxy-config examples/proxy.json --mount project=/path/to/pro
 The example configuration allows GET/POST requests to `https://api.openai.com` with credential substitution, and GET/HEAD requests to the Alpine package CDN without credentials. All other origins are denied. Missing host credentials and invalid configuration fail startup before booting the guest.
 
 Copy the example to `proxy.local.json` for local changes. The repository ignores `*.local.json` and `.env` files. Configuration references host environment variables by name; do not put real keys in JSON or mounted directories.
+
+### Start with nothing allowed
+
+```sh
+node dist/cli.js --proxy --mount project=/path/to/project
+```
+
+`--proxy` starts the same managed proxy with the policy `{"allow": []}`, so every request is denied until you add rules on the [`/proxy` page](browser-ui.md#proxy-editor). Rules added there last until the server stops; save them to a file and use `--proxy-config` to keep them. When both options are given, the configuration file supplies the policy. `guestEnv` cannot be changed on the page, so placeholder variables for credential rules need a configuration file. Credential rules added on the page can reference host environment variables that were set when the server started.
 
 The example UUID is public demonstration data. Generate a fresh token when creating a sandbox and update both `credential.placeholder` and `guestEnv`:
 

@@ -21,3 +21,11 @@ export async function loadProxyPolicy(
   } finally { await handle.close(); }
   return compileProxyPolicy(value, secrets);
 }
+
+/** Choose the startup policy: a configuration file, deny-all for a bare --proxy, or no proxy. */
+export async function startupProxyPolicy(
+  options: { proxy?: boolean; proxyConfig?: string }, secrets: Record<string, string | undefined> = process.env,
+): Promise<ProxyPolicy | undefined> {
+  if (options.proxyConfig) return loadProxyPolicy(options.proxyConfig, secrets);
+  return options.proxy ? compileProxyPolicy({ allow: [] }, secrets) : undefined;
+}

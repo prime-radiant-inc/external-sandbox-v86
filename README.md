@@ -70,7 +70,7 @@ Use `node dist/cli.js --help` for `--image`, `--memory`, and `--verbose` options
 
 Open `http://127.0.0.1:8686/` to run commands, watch separate stdout/stderr, send stdin or EOF, cancel, browse history, and **Copy session** to the clipboard. Each command starts a fresh shell; full-screen TTY programs are unsupported.
 
-With `--proxy-config`, open `/proxy` to edit the live JSON policy and inspect sanitized request activity. Applying a valid policy closes existing proxy connections; invalid edits leave the old policy intact. Changes are runtime-only. See [browser terminal and proxy UI](docs/browser-ui.md).
+With `--proxy` or `--proxy-config`, open `/proxy` to edit the live JSON policy and inspect sanitized request activity. Applying a valid policy closes existing proxy connections; invalid edits leave the old policy intact. Changes are runtime-only. See [browser terminal and proxy UI](docs/browser-ui.md).
 
 ## Install guest tools at startup
 
@@ -96,7 +96,15 @@ node dist/cli.js --proxy-config examples/proxy.json --mount project=/path/to/pro
 
 Guest programs receive a placeholder API key, standard proxy settings, and a public CA certificate. The host proxy checks each destination and replaces the exact placeholder header with the real host credential. An allowed upstream can transform and echo that credential despite literal response redaction; use credential rules only with trusted services and narrow their methods and paths. Direct guest networking is blocked outside the guest, even when a program ignores proxy settings.
 
-See [configuration, examples, and security boundaries](docs/proxy.md). This mode supports outbound HTTP(S), including streaming responses, with exact origin rules, optional methods/paths, and optional CIDR allowlists. It does not enable arbitrary TCP/UDP or grant ordinary commands package-install privileges. Omitting `--proxy-config` retains the offline behavior.
+See [configuration, examples, and security boundaries](docs/proxy.md). This mode supports outbound HTTP(S), including streaming responses, with exact origin rules, optional methods/paths, and optional CIDR allowlists. It does not enable arbitrary TCP/UDP or grant ordinary commands package-install privileges.
+
+To start with every destination denied and add allow rules from the `/proxy` page as you need them, pass `--proxy` in place of a configuration file:
+
+```sh
+node dist/cli.js --proxy --mount project=/path/to/project
+```
+
+With neither `--proxy` nor `--proxy-config`, the VM has no network device and `/proxy` is not served.
 
 ## JSON API
 

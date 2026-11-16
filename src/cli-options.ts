@@ -10,7 +10,7 @@ function aliasAllowed(target: string) {
 }
 
 export async function parseServerOptions(args: string[]) {
-  let port = 8686, memoryMiB = 512, preserve = false, verbose = false;
+  let port = 8686, memoryMiB = 512, preserve = false, verbose = false, proxy = false;
   let image = fileURLToPath(new URL('../images/linux', import.meta.url));
   let proxyConfig: string | undefined;
   const requestedPackages: string[] = [];
@@ -21,6 +21,7 @@ export async function parseServerOptions(args: string[]) {
     if (arg === '--help' || arg === '-h') { help = true; break; }
     if (arg === '--preserve-paths') { preserve = true; continue; }
     if (arg === '--verbose') { verbose = true; continue; }
+    if (arg === '--proxy') { proxy = true; continue; }
     if (arg === '--packages' || arg.startsWith('--packages=')) {
       const value = arg === '--packages' ? args[++i] : arg.slice('--packages='.length);
       if (value === undefined) throw new Error('--packages needs a value');
@@ -39,7 +40,7 @@ export async function parseServerOptions(args: string[]) {
     } else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`);
     else specs.push({ value: arg, mode: 'rw' });
   }
-  if (help) return { help, port, memoryMiB, image, proxyConfig, verbose, packages: [], mounts: [] as VMMount[] };
+  if (help) return { help, port, memoryMiB, image, proxy, proxyConfig, verbose, packages: [], mounts: [] as VMMount[] };
   const packages = normalizePackages(requestedPackages);
   if (packages.length && !proxyConfig) throw new Error('--packages requires --proxy-config allowing https://dl-cdn.alpinelinux.org');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('Port must be an integer from 0 to 65535');
@@ -61,5 +62,5 @@ export async function parseServerOptions(args: string[]) {
     }
     mounts.push({ name, hostPath, mode, ...(preservedPaths ? { preservedPaths } : {}) });
   }
-  return { help, port, memoryMiB, image, proxyConfig, verbose, packages, mounts };
+  return { help, port, memoryMiB, image, proxy, proxyConfig, verbose, packages, mounts };
 }

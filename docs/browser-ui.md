@@ -14,7 +14,7 @@ Each run starts a fresh Bash command. `cd` and `export` affect only that run; us
 
 ## Proxy editor
 
-Start with `--proxy-config FILE`, then open `/proxy` or the terminal's **Network policy** link. The page shows allowed origins, methods, paths, IP ranges, credential references, a JSON editor, and recent request activity.
+Start with `--proxy-config FILE`, or with `--proxy` for a policy that denies every destination, then open `/proxy` or the terminal's **Network policy** link. The page shows allowed origins, methods, paths, IP ranges, credential references, a JSON editor, and recent request activity.
 
 **Apply policy** validates before atomically replacing the active policy. Invalid edits leave it unchanged. Successful updates close current proxy connections and pending upstream requests, so revoked access cannot continue on an old connection. The CA and listener stay in place. **Discard edits** restores the last fetched policy. Activity refreshes every three seconds without overwriting unsaved edits.
 

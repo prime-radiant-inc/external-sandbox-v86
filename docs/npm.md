@@ -13,7 +13,7 @@ npx external-sandbox-v86 --mount "project=$PWD"
 
 The second command stays in the foreground and serves the API on `http://127.0.0.1:8686`, including the browser terminal at `/`. Stop it with Ctrl-C. First use downloads the package and its three runtime dependencies into npm's cache; later runs can reuse that cache. The guest image is already in the package and is not downloaded by an install hook.
 
-For managed networking, put your policy in a separate file and add `--proxy-config /path/to/proxy.json`. See [the proxy guide](proxy.md). The config path and mounted directories are resolved from your working directory; bundled VM assets are resolved from the installed package.
+For managed networking, put your policy in a separate file and add `--proxy-config /path/to/proxy.json`, or add `--proxy` to start with every destination denied and build the policy on the `/proxy` page. See [the proxy guide](proxy.md). The config path and mounted directories are resolved from your working directory; bundled VM assets are resolved from the installed package.
 
 ## Install once
 

@@ -19,7 +19,7 @@ For a source checkout, use `node dist/cli.js` and `--proxy-config examples/proxy
 
 `--packages uv --packages jq` and `--packages=uv,jq` are equivalent. Duplicate names are removed. Up to 64 plain Alpine package names are accepted; flags, URLs, local APK paths, whitespace, and version selectors are rejected. No package names are evaluated as shell code.
 
-An explicit `--proxy-config` is required. Package setup uses the same host proxy policy as ordinary guest commands, without adding implicit allow rules. The example permits only Alpine package downloads. Additional registries need their own allow rules; installing npm or uv does not authorize their traffic.
+An explicit `--proxy-config` is required; `--proxy` alone denies the package CDN, and packages install before the `/proxy` page is available. Package setup uses the same host proxy policy as ordinary guest commands, without adding implicit allow rules. The example permits only Alpine package downloads. Additional registries need their own allow rules; installing npm or uv does not authorize their traffic.
 
 ## What startup does
 

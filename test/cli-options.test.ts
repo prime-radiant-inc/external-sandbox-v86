@@ -30,3 +30,20 @@ test('mount mode options reject missing values and duplicate names', async t => 
   await assert.rejects(parseServerOptions(['--mount-rw']), /needs a value/);
   await assert.rejects(parseServerOptions(['--mount-ro', `x=${root}`, '--mount-rw', `x=${root}`]), /Duplicate mount name/);
 });
+
+test('--proxy enables the managed proxy without a configuration file', async () => {
+  const offline = await parseServerOptions([]);
+  assert.equal(offline.proxy, false);
+  assert.equal(offline.proxyConfig, undefined);
+  const bare = await parseServerOptions(['--proxy']);
+  assert.equal(bare.proxy, true);
+  assert.equal(bare.proxyConfig, undefined);
+  const both = await parseServerOptions(['--proxy', '--proxy-config', 'policy.json']);
+  assert.equal(both.proxy, true);
+  assert.equal(both.proxyConfig, path.resolve('policy.json'));
+  await assert.rejects(parseServerOptions(['--proxy=yes']), /Unknown option/);
+});
+
+test('--packages needs a configuration file because --proxy alone denies the package CDN', async () => {
+  await assert.rejects(parseServerOptions(['--proxy', '--packages', 'jq']), /--packages requires --proxy-config/);
+});
