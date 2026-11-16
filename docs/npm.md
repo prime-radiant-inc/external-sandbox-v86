@@ -38,9 +38,9 @@ Installing the package requires no lifecycle scripts; environments which disable
 A tarball produced by `npm pack` (see below) installs and runs the same way, which is useful for testing a build before it is released:
 
 ```sh
-npx --yes --package ./external-sandbox-v86-0.3.0.tgz external-sandbox-v86 --help
-npx --yes --package ./external-sandbox-v86-0.3.0.tgz external-sandbox-v86 --mount "project=$PWD"
-npm install --global ./external-sandbox-v86-0.3.0.tgz
+npx --yes --package ./external-sandbox-v86-0.4.0.tgz external-sandbox-v86 --help
+npx --yes --package ./external-sandbox-v86-0.4.0.tgz external-sandbox-v86 --mount "project=$PWD"
+npm install --global ./external-sandbox-v86-0.4.0.tgz
 ```
 
 Use the explicit `--package` form for a local tarball. Passing the archive path directly as the `npx` command can make npm try to execute the archive itself.
